@@ -870,6 +870,7 @@ class OSG_EXPORT State : public Referenced
         /** Get whether and how often OpenGL errors should be checked for.*/
         CheckForGLErrors getCheckForGLErrors() const { return _checkGLErrors; }
 
+        bool checkGLErrors(const std::string& str) const;
         bool checkGLErrors(const char* str) const;
         bool checkGLErrors(StateAttribute::GLMode mode) const;
         bool checkGLErrors(const StateAttribute* attribute) const;
@@ -2031,6 +2032,7 @@ inline void State::applyAttributeListOnTexUnit(unsigned int unit,AttributeMap& a
 
 }
 
+#if 0
 inline void State::applyUniformList(UniformMap& uniformMap,const StateSet::UniformList& uniformList)
 {
     if (!_lastAppliedProgramObject) return;
@@ -2104,6 +2106,7 @@ inline void State::applyUniformList(UniformMap& uniformMap,const StateSet::Unifo
     }
 
 }
+#endif
 
 inline void State::applyDefineList(DefineMap& defineMap, const StateSet::DefineList& defineList)
 {
