@@ -263,7 +263,28 @@ const char* invalidNames[] =
     "Node",
     "AlphaFunc",
     "CompositeViewer",
-    "OpenSceneGraph-3"
+    "OpenSceneGraph-3",
+    "DisplaySettings::SHADER_NONE",
+    "CodeDocs",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Fri",
+    "Sat",
+    "Sun",
+    "I",
+    "TriangleFunctor",
+    "PrimitiveFunctor",
+    "OpenMW",
+    "StreamOperator",
+    "SceneLoader",
+    "OpenGL",
+    "FindLIBLAS",
+    "PissedCapslock",
+    "MinGW",
+    "Haojia521",
+    "Github",
+    "It"
 };
 
 
@@ -486,7 +507,9 @@ TypoCorrection typoCorrections[] =
     {"Janik", "Jannik"},
     {"ViganÃ²", "Viganò"},
     {"Vigano", "Viganò"},
-    {"Frashud", "Farshid"}
+    {"Frashud", "Farshid"},
+    {"Dannahauer","Dannahauer"},
+    {"Sando","Sandro"}
 };
 
 
@@ -500,7 +523,11 @@ struct NameCorrection
 
 NameCorrection nameCorrections[] =
 {
+    {"LaurensVoerman","GetScalarValue",
+     "Laurens", "Voerman"},
     {"LaurensVoerman","Meta_Shape",
+     "Laurens", "Voerman"},
+    {"LaurensVoerman","OpenCascade",
      "Laurens", "Voerman"},
     {"LaurensVoerman","Fri",
      "Laurens", "Voerman"},
@@ -683,7 +710,9 @@ NameCorrection nameCorrections[] =
      {"WeSee", "",
        "Alois", "Wismer"},
      {"We", "See",
-       "Alois", "Wismer"}
+       "Alois", "Wismer"},
+     {"AnyOldName3", "",
+       "Chris", "Djali"}
 };
 
 

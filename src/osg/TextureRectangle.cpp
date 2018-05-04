@@ -193,7 +193,7 @@ void TextureRectangle::apply(State& state) const
 
     if (textureObject)
     {
-        textureObject->bind();
+        textureObject->bind(state);
 
         if (getTextureParameterDirty(state.getContextID()))
             applyTexParameters(GL_TEXTURE_RECTANGLE, state);
@@ -204,10 +204,10 @@ void TextureRectangle::apply(State& state) const
         }
         else if (_image.valid() && getModifiedCount(contextID) != _image->getModifiedCount())
         {
-            applyTexImage_subload(GL_TEXTURE_RECTANGLE, _image.get(), state, _textureWidth, _textureHeight, _internalFormat);
-
             // update the modified count to show that it is up to date.
             getModifiedCount(contextID) = _image->getModifiedCount();
+
+            applyTexImage_subload(GL_TEXTURE_RECTANGLE, _image.get(), state, _textureWidth, _textureHeight, _internalFormat);
         }
     }
     else if (_subloadCallback.valid())
@@ -215,7 +215,7 @@ void TextureRectangle::apply(State& state) const
         // we don't have a applyTexImage1D_subload yet so can't reuse.. so just generate a new texture object.
         textureObject = generateAndAssignTextureObject(contextID,GL_TEXTURE_RECTANGLE);
 
-        textureObject->bind();
+        textureObject->bind(state);
 
         applyTexParameters(GL_TEXTURE_RECTANGLE, state);
 
@@ -245,7 +245,7 @@ void TextureRectangle::apply(State& state) const
         textureObject = generateAndAssignTextureObject(
                 contextID,GL_TEXTURE_RECTANGLE,1,_internalFormat,_textureWidth,_textureHeight,1,0);
 
-        textureObject->bind();
+        textureObject->bind(state);
 
         applyTexParameters(GL_TEXTURE_RECTANGLE, state);
 
@@ -271,7 +271,7 @@ void TextureRectangle::apply(State& state) const
         textureObject = generateAndAssignTextureObject(
                 contextID,GL_TEXTURE_RECTANGLE,0,_internalFormat,_textureWidth,_textureHeight,1,0);
 
-        textureObject->bind();
+        textureObject->bind(state);
 
         applyTexParameters(GL_TEXTURE_RECTANGLE,state);
 
@@ -321,7 +321,7 @@ void TextureRectangle::applyTexImage_load(GLenum target, Image* image, State& st
     {
         glPixelStorei(GL_UNPACK_CLIENT_STORAGE_APPLE,GL_TRUE);
 
-        #if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE) && !defined(OSG_GL3_AVAILABLE)
+        #if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE) && !defined(OSG_GLES3_AVAILABLE) && !defined(OSG_GL3_AVAILABLE)
             glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_PRIORITY,0.0f);
         #endif
 
@@ -490,7 +490,7 @@ void TextureRectangle::copyTexImage2D(State& state, int x, int y, int width, int
     //
     textureObject = generateAndAssignTextureObject(contextID,GL_TEXTURE_RECTANGLE);
 
-    textureObject->bind();
+    textureObject->bind(state);
 
     applyTexParameters(GL_TEXTURE_RECTANGLE,state);
 
@@ -524,7 +524,7 @@ void TextureRectangle::copyTexSubImage2D(State& state, int xoffset, int yoffset,
     if (textureObject)
     {
         // we have a valid image
-        textureObject->bind();
+        textureObject->bind(state);
 
         applyTexParameters(GL_TEXTURE_RECTANGLE,state);
 

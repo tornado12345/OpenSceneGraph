@@ -38,13 +38,9 @@ void GeometryCollector::reset()
     _geometryList.clear();
 }
 
-void GeometryCollector::apply(Geode& geode)
+void GeometryCollector::apply(Geometry& geom)
 {
-    for(unsigned int i = 0; i < geode.getNumDrawables(); ++i )
-    {
-        osg::Geometry* geom = dynamic_cast<osg::Geometry*>(geode.getDrawable(i));
-        if (geom) _geometryList.insert(geom);
-    }
+    _geometryList.insert(&geom);
 }
 
 namespace
@@ -739,7 +735,7 @@ void VertexCacheVisitor::optimizeVertices(Geometry& geom)
     else
         cout << "0.0\n";
 #endif
-    geom.dirtyDisplayList();
+    geom.dirtyGLObjects();
 }
 
 // The main optimization loop
@@ -890,14 +886,9 @@ void VertexCacheMissVisitor::reset()
     triangles = 0;
 }
 
-void VertexCacheMissVisitor::apply(Geode& geode)
+void VertexCacheMissVisitor::apply(Geometry& geom)
 {
-    for(unsigned int i = 0; i < geode.getNumDrawables(); ++i )
-    {
-        osg::Geometry* geom = dynamic_cast<osg::Geometry*>(geode.getDrawable(i));
-        if (geom)
-            doGeometry(*geom);
-    }
+    doGeometry(geom);
 }
 
 namespace
@@ -1185,28 +1176,28 @@ void VertexAccessOrderVisitor::optimizeOrder(Geometry& geom)
     // deduplicate UVs array that were only shared within the geometry
     deduplicator.deduplicateUVs(geom);
 
-    geom.dirtyDisplayList();
+    geom.dirtyGLObjects();
 }
 
 void SharedArrayOptimizer::findDuplicatedUVs(const osg::Geometry& geometry)
 {
     _deduplicateUvs.clear();
 
-    // look for all channels that are shared only *within* the geometry
+    // look for all arrays that are shared only *within* the geometry
     std::map<const osg::Array*, unsigned int> arrayPointerCounter;
 
     for(unsigned int id = 0 ; id < geometry.getNumTexCoordArrays() ; ++ id)
     {
-        const osg::Array* channel = geometry.getTexCoordArray(id);
-        if(channel && channel->getNumElements())
+        const osg::Array* array = geometry.getTexCoordArray(id);
+        if(array && array->getNumElements())
         {
-            if(arrayPointerCounter.find(channel) == arrayPointerCounter.end())
+            if(arrayPointerCounter.find(array) == arrayPointerCounter.end())
             {
-                arrayPointerCounter[channel] = 1;
+                arrayPointerCounter[array] = 1;
             }
             else
             {
-                arrayPointerCounter[channel] += 1;
+                arrayPointerCounter[array] += 1;
             }
         }
     }
@@ -1215,14 +1206,14 @@ void SharedArrayOptimizer::findDuplicatedUVs(const osg::Geometry& geometry)
 
     for(unsigned int id = 0 ; id != geometry.getNumTexCoordArrays() ; ++ id)
     {
-        const osg::Array* channel = geometry.getTexCoordArray(id);
-        // test if array is shared outside the geometry
-        if(channel && static_cast<unsigned int>(channel->referenceCount()) == arrayPointerCounter[channel])
+        const osg::Array* array = geometry.getTexCoordArray(id);
+        // test if array is shared inside the geometry
+        if(array && arrayPointerCounter[array] > 1)
         {
-            std::map<const osg::Array*, unsigned int>::const_iterator reference = references.find(channel);
+            std::map<const osg::Array*, unsigned int>::const_iterator reference = references.find(array);
             if(reference == references.end())
             {
-                references[channel] = id;
+                references[array] = id;
             }
             else
             {

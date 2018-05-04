@@ -262,7 +262,7 @@ osg::ref_ptr<SharedGeometry> GeometryPool::getOrCreateGeometry(osgTerrain::Terra
         }
     }
 
-    bool smallTile = numVertices <= 16384;
+    bool smallTile = numVertices < 65536;
 
     GLenum primitiveTypes = GL_QUADS;
 
@@ -554,7 +554,10 @@ osg::ref_ptr<osg::Program> GeometryPool::getOrCreateProgram(LayerTypes& layerTyp
     _programMap[layerTypes] = program;
 
     // add shader that provides the lighting functions
-    program->addShader(osgDB::readRefShaderFile("shaders/lighting.vert"));
+    {
+        #include "shaders/lighting_vert.cpp"
+        program->addShader(osgDB::readRefShaderFileWithFallback(osg::Shader::VERTEX, "shaders/lighting.vert", lighting_vert));
+    }
 
     // OSG_NOTICE<<") creating new Program "<<program.get()<<std::endl;
     {
@@ -793,7 +796,7 @@ SharedGeometry::~SharedGeometry()
 {
 }
 
-osg::VertexArrayState* SharedGeometry::createVertexArrayState(osg::RenderInfo& renderInfo) const
+osg::VertexArrayState* SharedGeometry::createVertexArrayStateImplementation(osg::RenderInfo& renderInfo) const
 {
     osg::State& state = *renderInfo.getState();
 
@@ -843,7 +846,7 @@ void SharedGeometry::compileGLObjects(osg::RenderInfo& renderInfo) const
 
         osg::BufferObject* ebo = _drawElements->getElementBufferObject();
         osg::GLBufferObject* ebo_glBufferObject = ebo->getOrCreateGLBufferObject(contextID);
-        if (ebo_glBufferObject && vbo_glBufferObject->isDirty())
+        if (ebo_glBufferObject && ebo_glBufferObject->isDirty())
         {
             // OSG_NOTICE<<"Compile buffer "<<glBufferObject<<std::endl;
             ebo_glBufferObject->compileBuffer();
@@ -861,10 +864,12 @@ void SharedGeometry::compileGLObjects(osg::RenderInfo& renderInfo) const
 
             osg::State::SetCurrentVertexArrayStateProxy setVASProxy(state, vas);
 
-            vas->bindVertexArrayObject();
+            state.bindVertexArrayObject(vas);
 
             if (vbo_glBufferObject) vas->bindVertexBufferObject(vbo_glBufferObject);
             if (ebo_glBufferObject) vas->bindElementBufferObject(ebo_glBufferObject);
+
+            state.unbindVertexArrayObject();
         }
 
     }

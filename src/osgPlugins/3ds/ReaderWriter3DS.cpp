@@ -17,8 +17,6 @@
 #include <osgDB/FileNameUtils>
 #include <osgDB/ReadFile>
 
-#include <osgUtil/TriStripVisitor>
-
 //MIKEC debug only for PrintVisitor
 #include <osg/NodeVisitor>
 
@@ -206,7 +204,7 @@ protected:
         typedef std::vector<int> FaceList;
         typedef std::map<std::string,osg::StateSet*> GeoStateMap;
 
-        osg::Texture2D* createTexture(Lib3dsTextureMap *texture,const char* label,bool& transparancy);
+        osg::Texture2D* createTexture(Lib3dsTextureMap *texture,const char* label,bool& transparency);
         StateSetInfo createStateSet(Lib3dsMaterial *materials);
         osg::Drawable* createDrawable(Lib3dsMesh *meshes,FaceList& faceList, const osg::Matrix * matrix, StateSetInfo & ssi, bool smoothVertexNormals);
 
@@ -436,7 +434,7 @@ void ReaderWriter3DS::ReaderObject::addDrawableFromFace(osg::Geode * geode, Face
 // Transforms points by matrix if 'matrix' is not NULL
 // Creates a Geode and Geometry (as parent,child) and adds the Geode to 'parent' parameter iff 'parent' is non-NULL
 // Returns ptr to the Geode
-osg::Node* ReaderWriter3DS::ReaderObject::processMesh(StateSetMap& drawStateMap,osg::Group* parent,Lib3dsMesh* mesh, const osg::Matrix * matrix)
+osg::Node* ReaderWriter3DS::ReaderObject::processMesh(StateSetMap& drawStateMap, osg::Group* parent, Lib3dsMesh* mesh, const osg::Matrix * matrix)
 {
     typedef std::vector<FaceList> MaterialFaceMap;
     MaterialFaceMap materialFaceMap;
@@ -605,13 +603,17 @@ osg::Node* ReaderWriter3DS::ReaderObject::processNode(StateSetMap& drawStateMap,
         // if noMatrixTransforms is not set, we create a transform node for the mesh's matrix
         osg::Group* meshTransform=NULL;
 
-        if ((noMatrixTransforms==false) && meshAppliedMatPtr) { // we are allowed to have, and need another matrixtransform
+        if ((noMatrixTransforms==false) && meshAppliedMatPtr)
+        {
+            // we are allowed to have, and need another matrixtransform
             meshTransform=new osg::MatrixTransform(meshMat);
             meshAppliedMatPtr=NULL; // since meshTransform applies it
 
             meshTransform->setName("3DSMeshMatrix");
             if (group) group->addChild(meshTransform);
-        } else {
+        }
+        else
+        {
             meshTransform=group; // don't need the meshTransform node - note group can be NULL
         }
 
@@ -619,18 +621,21 @@ osg::Node* ReaderWriter3DS::ReaderObject::processNode(StateSetMap& drawStateMap,
         {
             // add our geometry to group (where our children already are)
             // creates geometry under modifier node
-            processMesh(drawStateMap,group,mesh,meshAppliedMatPtr);
+            processMesh(drawStateMap, meshTransform, mesh, meshAppliedMatPtr);
             return group;
         }
         else
         {
             // didn't use group for children, return a ptr directly to the Geode for this mesh
             // there is no group node but may have a meshTransform node to hold the meshes matrix
-            if (meshTransform) {
-                processMesh(drawStateMap,meshTransform,mesh,meshAppliedMatPtr);
+            if (meshTransform)
+            {
+                processMesh(drawStateMap, meshTransform, mesh, meshAppliedMatPtr);
                 return meshTransform;
-            } else { // no group or meshTransform nodes - create a new Geode and return that
-                return processMesh(drawStateMap,NULL,mesh,meshAppliedMatPtr);
+            }
+            else
+            { // no group or meshTransform nodes - create a new Geode and return that
+                return processMesh(drawStateMap, NULL, mesh, meshAppliedMatPtr);
             }
         }
 
@@ -1132,10 +1137,6 @@ osg::Drawable* ReaderWriter3DS::ReaderObject::createDrawable(Lib3dsMesh *m,FaceL
     } else {
         fillTriangles<DrawElementsUInt>  (*geom, remappedFaces, faceCount * 3);
    }
-#if 0
-    osgUtil::TriStripVisitor tsv;
-    tsv.stripify(*geom);
-#endif
 
     return geom;
 }
@@ -1204,7 +1205,7 @@ osg::Texture2D*  ReaderWriter3DS::ReaderObject::createTexture(Lib3dsTextureMap *
         osg::Texture2D* osg_texture = new osg::Texture2D;
         osg_texture->setImage(osg_image.get());
         osg_texture->setName(texture->name);
-        // does the texture support transparancy?
+        // does the texture support transparency?
         transparency = ((texture->flags)&LIB3DS_TEXTURE_ALPHA_SOURCE)!=0;
 
         // what is the wrap mode of the texture.

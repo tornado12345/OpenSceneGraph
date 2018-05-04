@@ -16,9 +16,12 @@ osg::ref_ptr<MySerializer> serializer = new MySerializer( \
 REGISTER_OBJECT_WRAPPER( PrimitiveSet,
                          0,
                          osg::PrimitiveSet,
-                         "osg::Object osg::PrimitiveSet" )
+                         "osg::Object osg::BufferData osg::PrimitiveSet" )
 {
-
+    {
+        UPDATE_TO_VERSION_SCOPED( 147 )
+        ADDED_ASSOCIATE("osg::BufferData")
+    }
     ADD_INT_SERIALIZER( NumInstances, 0);
 
 #if 1
@@ -80,8 +83,12 @@ namespace DrawArraysWrapper {
 REGISTER_OBJECT_WRAPPER( DrawArrays,
                          new osg::DrawArrays,
                          osg::DrawArrays,
-                         "osg::Object osg::PrimitiveSet osg::DrawArrays" )
+                         "osg::Object osg::BufferData osg::PrimitiveSet osg::DrawArrays" )
 {
+    {
+        UPDATE_TO_VERSION_SCOPED( 147 )
+        ADDED_ASSOCIATE("osg::BufferData")
+    }
     ADD_GLINT_SERIALIZER( First, 0);
     ADD_GLINT_SERIALIZER( Count, 0);
 }
@@ -93,8 +100,12 @@ namespace DrawArrayLengthsWrapper {
 REGISTER_OBJECT_WRAPPER( DrawArrayLengths,
                          new osg::DrawArrayLengths,
                          osg::DrawArrayLengths,
-                         "osg::Object osg::PrimitiveSet osg::DrawArrayLengths" )
+                         "osg::Object osg::BufferData osg::PrimitiveSet osg::DrawArrayLengths" )
 {
+    {
+        UPDATE_TO_VERSION_SCOPED( 147 )
+        ADDED_ASSOCIATE("osg::BufferData")
+    }
     ADD_GLINT_SERIALIZER( First, 0);
     ADD_ISAVECTOR_SERIALIZER( vector, osgDB::BaseSerializer::RW_INT, 4 );
 }
@@ -110,16 +121,10 @@ struct ResizeDrawElements : public osgDB::MethodObject
     {
         if (inputParameters.empty()) return false;
 
-        osg::Object* indexObject = inputParameters[0].get();
-
         unsigned int index = 0;
-        osg::DoubleValueObject* dvo = dynamic_cast<osg::DoubleValueObject*>(indexObject);
-        if (dvo) index = static_cast<unsigned int>(dvo->getValue());
-        else
-        {
-            osg::UIntValueObject* uivo = dynamic_cast<osg::UIntValueObject*>(indexObject);
-            if (uivo) index = uivo->getValue();
-        }
+        osg::ValueObject* indexObject = inputParameters[0]->asValueObject();
+        if (indexObject) indexObject->getScalarValue(index);
+
         osg::DrawElements* de = reinterpret_cast<osg::DrawElements*>(objectPtr);
         de->resizeElements(index);
 
@@ -130,7 +135,7 @@ struct ResizeDrawElements : public osgDB::MethodObject
 REGISTER_OBJECT_WRAPPER( DrawElements,
                          0,
                          osg::DrawElements,
-                         "osg::Object osg::PrimitiveSet osg::DrawElements" )
+                         "osg::Object osg::BufferData osg::PrimitiveSet osg::DrawElements" )
 {
     ADD_METHOD_OBJECT( "resizeElements", ResizeDrawElements );
 }
@@ -140,8 +145,12 @@ REGISTER_OBJECT_WRAPPER( DrawElements,
 
 #define DRAW_ELEMENTS_WRAPPER( DRAWELEMENTS, ELEMENTTYPE ) \
     namespace Wrapper##DRAWELEMENTS { \
-        REGISTER_OBJECT_WRAPPER( DRAWELEMENTS, new osg::DRAWELEMENTS, osg::DRAWELEMENTS, "osg::Object osg::PrimitiveSet osg::"#DRAWELEMENTS) \
+        REGISTER_OBJECT_WRAPPER( DRAWELEMENTS, new osg::DRAWELEMENTS, osg::DRAWELEMENTS, "osg::Object osg::BufferData osg::PrimitiveSet osg::"#DRAWELEMENTS) \
         { \
+           { \
+            UPDATE_TO_VERSION_SCOPED( 147 ) \
+            ADDED_ASSOCIATE("osg::BufferData") \
+           }\
                 ADD_ISAVECTOR_SERIALIZER( vector, osgDB::BaseSerializer::ELEMENTTYPE, 4 ); \
         } \
     }
@@ -156,7 +165,7 @@ namespace MultiDrawArrayWrapper {
 REGISTER_OBJECT_WRAPPER( MultiDrawArrays,
                          new osg::MultiDrawArrays,
                          osg::MultiDrawArrays,
-                         "osg::Object osg::PrimitiveSet osg::MultiDrawArrays" )
+                         "osg::Object osg::BufferData osg::PrimitiveSet osg::MultiDrawArrays" )
 {
     ADD_VECTOR_SERIALIZER( Firsts, osg::MultiDrawArrays::Firsts, osgDB::BaseSerializer::RW_INT, 8 );
     ADD_VECTOR_SERIALIZER( Counts, osg::MultiDrawArrays::Counts, osgDB::BaseSerializer::RW_INT, 8 );

@@ -743,7 +743,7 @@ void SceneView::cull()
             _cullVisitorRight->setClampProjectionMatrixCallback(_cullVisitor->getClampProjectionMatrixCallback());
             _cullVisitorRight->setTraversalMask(_cullMaskRight);
             computeRightEyeViewport(getViewport());
-            computeNearFar = cullStage(computeRightEyeProjection(getProjectionMatrix()),computeRightEyeView(getViewMatrix()),_cullVisitorRight.get(),_stateGraphRight.get(),_renderStageRight.get(),_viewportRight.get());
+            computeNearFar = cullStage(computeRightEyeProjection(getProjectionMatrix()),computeRightEyeView(getViewMatrix()),_cullVisitorRight.get(),_stateGraphRight.get(),_renderStageRight.get(),_viewportRight.get()) | computeNearFar;
 
             if (computeNearFar)
             {
@@ -913,7 +913,7 @@ bool SceneView::cullStage(const osg::Matrixd& projection,const osg::Matrixd& mod
     // note, this would be not required if the rendergraph had been
     // reset at the start of each frame (see top of this method) but
     // a clean has been used instead to try to minimize the amount of
-    // allocation and deleteing of the StateGraph nodes.
+    // allocation and deleting of the StateGraph nodes.
     rendergraph->prune();
 
     // set the number of dynamic objects in the scene.
@@ -957,7 +957,7 @@ void SceneView::draw()
 
     osg::State* state = _renderInfo.getState();
 
-    // we in theory should be able to be able to bypass reset, but we'll call it just incase.
+    // we in theory should be able to be able to bypass reset, but we'll call it just in case.
     //_state->reset();
     state->setFrameStamp(_frameStamp.get());
 
@@ -1232,7 +1232,7 @@ void SceneView::draw()
         case(osg::DisplaySettings::HORIZONTAL_INTERLACE):
         case(osg::DisplaySettings::CHECKERBOARD):
             {
-            #if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE) && !defined(OSG_GL3_AVAILABLE)
+            #if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE) && !defined(OSG_GLES3_AVAILABLE) && !defined(OSG_GLES3_AVAILABLE) && !defined(OSG_GL3_AVAILABLE)
                 if( 0 == ( _camera->getInheritanceMask() & DRAW_BUFFER) )
                 {
                     _renderStageLeft->setDrawBuffer(_camera->getDrawBuffer());

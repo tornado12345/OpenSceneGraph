@@ -1,21 +1,22 @@
-OpenSceneGraph Library 3.5.5
+OpenSceneGraph Library 3.7.0
 
-583 Contributors:
+568 Contributors:
 
 Firstname Surname
 -----------------
 Robert Osfield
+Don Burns
 Stephan Huber
 Paul Martz
+Laurens Voerman
 Farshid Lashkari
 Mathias Fröhlich
+Marco Jez
 Wang Rui
 Jean-Sébastien Guay
-Mike Weiblen
 Ulrich Hertlein
-Marco Jez
+Mike Weiblen
 Sukender
-Laurens Voerman
 Eric Wing
 Cedric Pinson
 Brede Johansen
@@ -26,13 +27,13 @@ Geoff Michel
 Eric Sokolowsky
 David Callu
 Colin McDonald
+Trajce Nikolov
 Tim Moore
 Martin Lavery
-Trajce Nikolov
 Mattias Helsing
 Jannik Heller
 Jason Beverage
-Tree Wed
+Tree
 Pjotr Svetachov
 Luigi Calori
 Alberto Luaces
@@ -48,11 +49,13 @@ Magnus Kessler
 David Fries
 Tom Jolley
 Paul Melis
+Jordi Torres
 Luc Frauciel
 Aurelien Albert
+Torben Dannhauer
+Pavel Moloshtan
 Brad Christiansen
 Terry Welsh
-Pavel Moloshtan
 Olaf Flebbe
 Mathieu Marache
 Lionel Lagarde
@@ -64,11 +67,9 @@ Norman Vine
 Chris Denham
 Sherman Wilcox
 Serge Lages
+Romano José Magacho da Silva
 Mourad Boufarguine
 Alberto Farre
-Torben Dannhauer
-Romano José Magacho da Silva
-Marco Fri
 Glenn Waldron
 André Garneau
 Adrian Egli
@@ -76,27 +77,27 @@ Sebastian Messerschmidt
 Randall Hopper
 Kristofer Tingdahl
 Jan Ciger
+Ruben Lopez
+Robert Michael
 Gideon May
 Don Tidrow
-Ruben Lopez
+Stephane Lamoliatte
 Michael Gronager
 Martin Naylor
 Joakim Simonsson
 David Spilling
 Daniel Sjölie
 Bryan Thrall
-Robert I
+Andreas Ekstrand
 Rafa Gaitan
 Mike Connell
 Konstantin Matveyev
 Fabien Lavignotte
-Andreas Ekstrand
 Thomas Hogarth
 Riccardo Corsi
 Melchior Franz
-Jordi Torres
 Johannes Baeuerle
-Stephane Lamoliatte
+Ravi Mathur
 Neil Hughes
 Martin Beckett
 Marc Helbling
@@ -107,9 +108,11 @@ Csaba Halasz
 Cory Riddell
 Chuck Seberino
 Boris Bralo
+Yefei He
 Sondra Iverson
 Simon Julier
-Ravi Mathur
+Rune Schmidt Jensen
+Ralf Habacker
 Rainer Oder
 Nico Kruithof
 Martin Aumueller
@@ -122,31 +125,32 @@ Frederic Bouvier
 Carlo Camporesi
 Björn Blissing
 Alexander Sinditskiy
-Yefei He
+Vladimir Chebaev
 Thibault Genessay
 Sasa Bistrovic
-Ralf Habacker
+Raymond de Vries
+Neil Groves
 Mikhail Izmestev
 Markus Trenkwalder
 Loic Dachary
 Joseph Steel
 John Shue
+Hartwig Wiesmann
 Brad Colbert
 Ben Discoe
-Vladimir Chebaev
 Vivek Rajan
 Uwe Woessner
 Tony Horrobin
 Thom DeCarlo
 Tatsuhiro Nishioka
 Tanguy Fautré
+Sean Spicer
 Ryan Kawicki
 Richard Schmidt
 Peter Hrenka
 Paul de Repentigny
 Nikolaus Hanekamp
 Neil Salter
-Neil Groves
 Mihai Radu
 Michael Hartman
 Martins Innus
@@ -156,16 +160,13 @@ Leandro Motta Barros
 Julien Valentin
 Johan Nouvel
 Javier Taibo
-Hartwig Wiesmann
 Donn Mielcarek
 Corbin Holtz
 Blasius Czink
 Alexander Irion
 Wee See
-Ulrich Fri
 Toshiyuki Takahei
 Sebastien Grignard
-Rune Schmidt Jensen
 Rudolf Wiedemann
 Maria Ten
 Liang Aibin
@@ -189,10 +190,8 @@ Vladimir Shabanov
 Tugkan Calapoglu
 Tim Daoust
 Sylvain Marie
-Stephane Fri
 Sohey Yamamoto
 Sergey Leontyev
-Sean Spicer
 Santosh Gaikwad
 Ryan Pavlik
 Robert Milharcic
@@ -229,7 +228,6 @@ Fabio Mierlo
 Doug McCorkle
 Donald Cipperly
 Don Leich
-Don Burns
 Dietmar Funck
 Colin Cochran
 Christian Ruzicka
@@ -254,18 +252,15 @@ Tassilo Glander
 Steve Lunsford
 Stephane Simon
 Stephan Eilemann
+Stanislav Blinov
 Sergey Polischuk
-Sean Sat
-Rune Mon
 Roni Zanolli
-Raymond de Vries
 Ralf Kern
 Piotr Gwiazdowski
 Pierre Haritchabalet
 Perry Miller
 Paul Palumbo
 Paul Obermeier
-Nick Mon
 Nguyen Van Truong
 Nathan Cournia
 Morten Haukness
@@ -305,7 +300,6 @@ Gill Peacegood
 Giampaolo Viganò
 Gerrick Bivins
 George Tarantilis
-Geoff Fri
 Ferdi Smit
 Eduardo Poyart
 Edgar Ellis
@@ -329,7 +323,6 @@ Alexandre Amalric
 Aitor Moreno
 Zbigniew Sroczynski
 Yuri Vilmanis
-Yefei Wed
 Xin Li
 Wang Lam
 Wand Rui
@@ -346,6 +339,7 @@ Valeriy Dubov
 Vaclav Bilek
 Tyge Løvset
 Troy Yee
+Torben Dannahauer
 Tony Vasile
 Tomas Hogarth
 Tomas Hnilica
@@ -360,8 +354,6 @@ Tamer Fahmy
 Stewart Andreason
 Steven Thomas
 Stephan Wenglorz
-Stanislav Fri
-Stanislav Blinov
 Simon Hammett
 Simon Carmody
 Simon Buckley
@@ -370,21 +362,17 @@ Shuxing Xiao
 Shane Arnott
 Sergey Kurdakov
 Sebastien Kuntz
+Sandro Mani
 Ruth Lang
-Rune Sat
-Ruben Tue
 Ruben The
 Ruben Smelik
 Ross Anderson
 Ronny Krueger
 Ronald van Maarseveen
-Romano Wed
 Romain Ouabdelkader
 Romain Charbit
 Rocco Martino
 Robert Swain
-Robert Mon
-Robert Michael
 Rob Smith
 Rob Radtke
 Rob Bloemkool
@@ -394,7 +382,6 @@ Remo Eichenberger
 Reinhard Sainitzer
 Rein Kadijk
 Ragnar Hammarqvist
-R Fri
 Qing Shen
 Piotr Rak
 Pierre Bourdin
@@ -406,7 +393,6 @@ Petr Salinger
 Peter Bear
 Peter Amstutz
 Per Nordqvist
-Pavel Sat
 Paul Idstein
 Paul Fredrikson
 Paul Fotheringham
@@ -423,9 +409,7 @@ Ole-Morten Duesund
 Ognjen Kostic
 Nicolas Brodu
 Nick Thu
-Nick Fri
 Nick Black
-Neil Tue
 Mojtaba Fathi
 Mirko Viviani
 Mikkel Gjøl
@@ -507,7 +491,6 @@ Hartmut Seichter
 Gunter Huber
 Gregory Jaegy
 Graeme Harkness
-Github It
 Gian Lorenzetto
 George Papagiannakis
 Geoff Thu
@@ -555,11 +538,11 @@ Christian Noon
 Christian Kaser
 Christian Ehrlicher
 Chris McGlone
+Chris Djali
 Carlos Garcea
 Bryce Eldridge
 Bruno Herbelin
 Brian Keener
-Brede Wed
 Brede Thu
 Brandon Hamm
 Bill Prendergast
@@ -571,6 +554,7 @@ Bart Gallet
 Axel Volley
 Arjun Ramamurthy
 Anthousis Andreadis
+Anna Sokol
 Andy Preece
 Andrew Reyonolds
 Andreas Roth
@@ -587,3 +571,4 @@ Alan Harris
 Adrien Grandemange
 Adrian Clark
 Adam Richard
+Abhishek Bansal

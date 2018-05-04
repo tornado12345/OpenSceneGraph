@@ -16,13 +16,9 @@ struct ResizeArray : public osgDB::MethodObject
         osg::Object* indexObject = inputParameters[0].get();
 
         unsigned int index = 0;
-        osg::DoubleValueObject* dvo = dynamic_cast<osg::DoubleValueObject*>(indexObject);
-        if (dvo) index = static_cast<unsigned int>(dvo->getValue());
-        else
-        {
-            osg::UIntValueObject* uivo = dynamic_cast<osg::UIntValueObject*>(indexObject);
-            if (uivo) index = uivo->getValue();
-        }
+        osg::ValueObject* indexObject = inputParameters[0]->asValueObject();
+        if (indexObject) indexObject->getScalarValue(index);
+
         osg::Array* array = reinterpret_cast<osg::Array*>(objectPtr);
         array->resizeArray(index);
 
@@ -34,8 +30,14 @@ struct ResizeArray : public osgDB::MethodObject
 REGISTER_OBJECT_WRAPPER( Array,
                          0,
                          osg::Array,
-                         "osg::Object osg::Array" )
+                         "osg::Object osg::BufferData osg::Array" )
 {
+
+
+    {
+        UPDATE_TO_VERSION_SCOPED( 147 )
+        ADDED_ASSOCIATE("osg::BufferData")
+    }
 #if 0
     BEGIN_ENUM_SERIALIZER_NO_SET( Type, ArrayType );
         ADD_ENUM_VALUE( ArrayType );
@@ -114,8 +116,12 @@ REGISTER_OBJECT_WRAPPER( Array,
 
 #define ARRAY_WRAPPERS( ARRAY, ELEMENTTYPE, NUMELEMENTSONROW ) \
     namespace Wrappers##ARRAY { \
-        REGISTER_OBJECT_WRAPPER( ARRAY, new osg::ARRAY, osg::ARRAY, "osg::Object osg::Array osg::"#ARRAY) \
+        REGISTER_OBJECT_WRAPPER( ARRAY, new osg::ARRAY, osg::ARRAY, "osg::Object osg::BufferData osg::Array osg::"#ARRAY) \
         { \
+            {\
+                UPDATE_TO_VERSION_SCOPED( 147 )\
+                ADDED_ASSOCIATE("osg::BufferData")\
+            }\
                 ADD_ISAVECTOR_SERIALIZER( vector, osgDB::BaseSerializer::ELEMENTTYPE, NUMELEMENTSONROW ); \
         } \
     }

@@ -76,19 +76,15 @@ struct SmoothTriangleFunctor
         }
     }
 
-    inline void operator() ( const osg::Vec3 &v1, const osg::Vec3 &v2, const osg::Vec3 &v3, bool treatVertexDataAsTemporary )
+    inline void operator() ( const osg::Vec3 &v1, const osg::Vec3 &v2, const osg::Vec3 &v3)
     {
-        if (!treatVertexDataAsTemporary)
-        {
-            // calc orientation of triangle.
-            osg::Vec3 normal = (v2-v1)^(v3-v1);
-            // normal.normalize();
+        // calc orientation of triangle.
+        osg::Vec3 normal = (v2-v1)^(v3-v1);
+        // normal.normalize();
 
-            updateNormal(normal,&v1);
-            updateNormal(normal,&v2);
-            updateNormal(normal,&v3);
-        }
-
+        updateNormal(normal,&v1);
+        updateNormal(normal,&v2);
+        updateNormal(normal,&v3);
     }
 };
 
@@ -145,7 +141,7 @@ static void smooth_old(osg::Geometry& geom)
     }
     geom.setNormalArray( normals, osg::Array::BIND_PER_VERTEX);
 
-    geom.dirtyDisplayList();
+    geom.dirtyGLObjects();
 }
 
 
@@ -702,11 +698,7 @@ void SmoothingVisitor::smooth(osg::Geometry& geom, double creaseAngle)
 }
 
 
-void SmoothingVisitor::apply(osg::Geode& geode)
+void SmoothingVisitor::apply(osg::Geometry& geom)
 {
-    for(unsigned int i = 0; i < geode.getNumDrawables(); i++ )
-    {
-        osg::Geometry* geom = dynamic_cast<osg::Geometry*>(geode.getDrawable(i));
-        if (geom) smooth(*geom, _creaseAngle);
-    }
+    smooth(geom, _creaseAngle);
 }

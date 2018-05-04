@@ -64,12 +64,17 @@ bool wxOsgApp::OnInit()
     osgViewer::Viewer *viewer = new osgViewer::Viewer;
     viewer->getCamera()->setGraphicsContext(gw);
     viewer->getCamera()->setViewport(0,0,width,height);
+
+    // set the draw and read buffers up for a double buffered window with rendering going to back buffer
+    viewer->getCamera()->setDrawBuffer(GL_BACK);
+    viewer->getCamera()->setReadBuffer(GL_BACK);
+
     viewer->addEventHandler(new osgViewer::StatsHandler);
     viewer->setThreadingModel(osgViewer::Viewer::SingleThreaded);
 
     // load the scene.
     wxString fname(argv[1]);
-    osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFile(std::string(fname.mb_str()));
+    osg::ref_ptr<osg::Node> loadedModel = osgDB::readRefNodeFile(std::string(fname.mb_str()));
     if (!loadedModel)
     {
         std::cout << argv[0] <<": No data loaded." << std::endl;
@@ -203,7 +208,7 @@ void OSGCanvas::OnKeyUp(wxKeyEvent &event)
     // event.Skip() to allow processing to continue.
 }
 
-void OSGCanvas::OnMouseEnter(wxMouseEvent &event)
+void OSGCanvas::OnMouseEnter(wxMouseEvent & /*event*/)
 {
     // Set focus to ourselves, so keyboard events get directed to us
     SetFocus();

@@ -58,6 +58,8 @@ public:
     virtual void writeULong( unsigned long l ) { write(l); }
     virtual void writeFloat( float f ) { write(f); }
     virtual void writeDouble( double d ) { write(d); }
+    virtual void writeInt64( GLint64 ll ) { write(ll); }
+    virtual void writeUInt64( GLuint64 ull ) { write(ull); }
     virtual void writeString( const std::string& s ) { _str.insert(_str.end(), s.begin(), s.end()); }
     virtual void writeStream( std::ostream& (*)(std::ostream&) ) {}
     virtual void writeBase( std::ios_base& (*)(std::ios_base&) ) {}
@@ -306,7 +308,7 @@ osg::Object* ClassInterface::createObject(const std::string& compoundClassName) 
     }
     else
     {
-        OSG_NOTICE<<"ClassInterface::createObject("<<compoundClassName<<"), No object wrapper avaiable."<<std::endl;
+        OSG_NOTICE<<"ClassInterface::createObject("<<compoundClassName<<"), No object wrapper available."<<std::endl;
         return 0;
     }
     // return (ow!=0) ? ow->createInstance() : 0;

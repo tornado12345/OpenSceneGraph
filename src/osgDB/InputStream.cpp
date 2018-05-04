@@ -709,7 +709,12 @@ osg::ref_ptr<osg::Image> InputStream::readImage(bool readFromExternal)
                 char* data = new char[size];
                 if ( !data )
                     throwException( "InputStream::readImage() Out of memory." );
-                if ( getException() ) return NULL;
+
+                if ( getException() )
+                {
+                    delete [] data;
+                    return NULL;
+                }
 
                 readCharArray( data, size );
                 image = new osg::Image;
@@ -843,7 +848,7 @@ osg::ref_ptr<osg::Image> InputStream::readImage(bool readFromExternal)
         }
         else
         {
-            if (!rr.success()) OSG_WARN << rr.statusMessage() << std::endl;
+           if (!rr.success()) OSG_WARN << "InputStream::readImage(): " << rr.statusMessage() << ", filename: " << name << std::endl;
         }
 
         if ( !image && _forceReadingImage ) image = new osg::Image;
@@ -851,19 +856,20 @@ osg::ref_ptr<osg::Image> InputStream::readImage(bool readFromExternal)
 
     if (loadedFromCache)
     {
-        // we don't want to overwrite the properties of the image in the cache as this could cause theading problems if the object is currently being used
+        // we don't want to overwrite the properties of the image in the cache as this could cause threading problems if the object is currently being used
         // so we read the properties from the file into a dummy object and discard the changes.
         osg::ref_ptr<osg::Object> temp_obj = readObjectFields("osg::Object", id, _dummyReadObject.get() );
         _identifierMap[id] = image;
     }
     else
     {
-        image = readObjectFieldsOfType<osg::Image>("osg::Object", id, image.get());
+        image = readObjectFieldsOfType<osg::Image>("osg::Object", id, image.get());// leaves _identifierMap[id] pointing at DummyObject if image invalid
         if ( image.valid() )
         {
             image->setFileName( name );
             image->setWriteHint( (osg::Image::WriteHint)writeHint );
         }
+        _identifierMap[id] = image;//valid or invalid, don't leave this pointing at an osg::Dummyobject as it's used with a static_cast when recycled
     }
     return image;
 }

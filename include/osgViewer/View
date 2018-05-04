@@ -47,7 +47,7 @@ class OSGVIEWER_EXPORT ViewConfig : public osg::Object
         /** configure method that is overridden by Config subclasses.*/
         virtual void configure(osgViewer::View& /*view*/) const {}
 
-        /** convenience method for getting the relavent display settings to use.*/
+        /** convenience method for getting the relevant display settings to use.*/
         virtual osg::DisplaySettings* getActiveDisplaySetting(osgViewer::View& view) const;
 };
 
@@ -246,7 +246,7 @@ class OSGVIEWER_EXPORT View : public osg::View, public osgGA::GUIActionAdapter
         const ViewConfig* getLastAppliedViewConfig() const { return _lastAppliedViewConfig.get(); }
 
 
-        /** deprecated, use view.apply(new osgViewer::AcrossAllWindows()). */
+        /** deprecated, use view.apply(new osgViewer::AcrossAllScreens()). */
         void setUpViewAcrossAllScreens();
 
         /** deprecated, use view.apply(new osgViewer::SingleWindow(x,y,width,screenNum)). */

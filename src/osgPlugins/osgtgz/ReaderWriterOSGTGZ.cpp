@@ -8,6 +8,7 @@
 #include <osg/Geode>
 #include <osg/Group>
 #include <osg/Notify>
+#include <osg/os_utils>
 
 #include <osgDB/Registry>
 #include <osgDB/ReadFile>
@@ -77,7 +78,7 @@ class sgReaderWriterOSGTGZ : public osgDB::ReaderWriter
             mkdir( dirname, 0700 );
         #endif
 
-            if ( system( command ) ) {
+            if (osg_system( command ) ) {
                 return ReadResult::FILE_NOT_HANDLED;
             }
 
@@ -101,13 +102,13 @@ class sgReaderWriterOSGTGZ : public osgDB::ReaderWriter
 
         #if defined(_WIN32) && !defined(__CYGWIN__)
             // note, is this the right command for windows?
-            // is there any way of overiding the Y/N option? RO.
+            // is there any way of overriding the Y/N option? RO.
             sprintf( command, "erase %s", dirname );
         #else
 
             sprintf( command, "rm -rf %s", dirname );
         #endif
-            if ( system( command ) ) {
+            if (osg_system( command ) ) {
                 return ReadResult::FILE_NOT_HANDLED;
             }
 

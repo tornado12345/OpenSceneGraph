@@ -127,7 +127,7 @@ public:
 
     virtual void deleteAllGLObjects()
     {
-         OSG_INFO<<"DisplayListManager::deleteAllGLObjects() Not currently implementated"<<std::endl;
+         OSG_INFO<<"DisplayListManager::deleteAllGLObjects() Not currently implemented"<<std::endl;
     }
 
     virtual void discardAllGLObjects()
@@ -240,8 +240,8 @@ Drawable::Drawable()
 
 Drawable::Drawable(const Drawable& drawable,const CopyOp& copyop):
     Node(drawable,copyop),
-    _initialBound(drawable._initialBound),
-    _computeBoundCallback(drawable._computeBoundCallback),
+    _initialBoundingBox(drawable._initialBoundingBox),
+    _computeBoundingBoxCallback(drawable._computeBoundingBoxCallback),
     _boundingBox(drawable._boundingBox),
     _shape(copyop(drawable._shape.get())),
     _supportsDisplayList(drawable._supportsDisplayList),
@@ -249,14 +249,14 @@ Drawable::Drawable(const Drawable& drawable,const CopyOp& copyop):
     _supportsVertexBufferObjects(drawable._supportsVertexBufferObjects),
     _useVertexBufferObjects(drawable._useVertexBufferObjects),
     _useVertexArrayObject(drawable._useVertexArrayObject),
-    _drawCallback(drawable._drawCallback)
+    _drawCallback(drawable._drawCallback),
+    _createVertexArrayStateCallback(drawable._createVertexArrayStateCallback)
 {
-    setStateSet(copyop(drawable._stateset.get()));
 }
 
 Drawable::~Drawable()
 {
-    dirtyDisplayList();
+    dirtyGLObjects();
 }
 
 osg::MatrixList Drawable::getWorldMatrices(const osg::Node* haltTraversalAtNode) const
@@ -357,7 +357,7 @@ void Drawable::setSupportsDisplayList(bool flag)
         {
             // used to support display lists and display lists switched
             // on so now delete them and turn useDisplayList off.
-            dirtyDisplayList();
+            dirtyGLObjects();
             _useDisplayList = false;
         }
     }
@@ -379,7 +379,7 @@ void Drawable::setUseDisplayList(bool flag)
 
     if (_useDisplayList)
     {
-        dirtyDisplayList();
+        dirtyGLObjects();
     }
 
     if (_supportsDisplayList)
@@ -430,11 +430,6 @@ void Drawable::setUseVertexBufferObjects(bool flag)
     }
 
     _useVertexBufferObjects = flag;
-}
-
-void Drawable::dirtyDisplayList()
-{
-    dirtyGLObjects();
 }
 
 void Drawable::dirtyGLObjects()
@@ -624,7 +619,6 @@ void Drawable::compileGLObjects(RenderInfo& renderInfo) const
 
 void Drawable::draw(RenderInfo& renderInfo) const
 {
-
     State& state = *renderInfo.getState();
     bool useVertexArrayObject = state.useVertexArrayObject(_useVertexArrayObject);
     if (useVertexArrayObject)
@@ -634,19 +628,16 @@ void Drawable::draw(RenderInfo& renderInfo) const
         VertexArrayState* vas = _vertexArrayStateList[contextID].get();
         if (!vas)
         {
-            _vertexArrayStateList[contextID] = vas = createVertexArrayState(renderInfo, true);
-            // OSG_NOTICE<<"  Geometry::draw() "<<this<<", assigned _vertexArrayStateList[renderInfo.getContextID()]="<<_vertexArrayStateList[renderInfo.getContextID()].get()<<", vas="<<vas<< std::endl;
+            _vertexArrayStateList[contextID] = vas = createVertexArrayState(renderInfo);
         }
         else
         {
             // vas->setRequiresSetArrays(getDataVariance()==osg::Object::DYNAMIC);
-            // OSG_NOTICE<<"  Geometry::draw() "<<this<<", reusing _vertexArrayStateList[renderInfo.getContextID()]="<<_vertexArrayStateList[renderInfo.getContextID()].get()<<", vas="<<vas<< std::endl;
         }
-
 
         State::SetCurrentVertexArrayStateProxy setVASProxy(state, vas);
 
-        vas->bindVertexArrayObject();
+        state.bindVertexArrayObject(vas);
 
         drawInner(renderInfo);
 
@@ -656,7 +647,11 @@ void Drawable::draw(RenderInfo& renderInfo) const
     }
 
     // TODO, add check against whether VAO is active and supported
-    if (state.getCurrentVertexArrayState()) state.getCurrentVertexArrayState()->bindVertexArrayObject();
+    if (state.getCurrentVertexArrayState())
+    {
+        //OSG_NOTICE<<"state.getCurrentVertexArrayState()->getVertexArrayObject()="<< state.getCurrentVertexArrayState()->getVertexArrayObject()<<std::endl;
+        state.bindVertexArrayObject(state.getCurrentVertexArrayState());
+    }
 
 
 #ifdef OSG_GL_DISPLAYLISTS_AVAILABLE
@@ -696,8 +691,9 @@ void Drawable::draw(RenderInfo& renderInfo) const
 
 #endif
 
-VertexArrayState* Drawable::createVertexArrayState(RenderInfo& renderInfo) const
+VertexArrayState* Drawable::createVertexArrayStateImplementation(RenderInfo& renderInfo) const
 {
+    OSG_INFO<<"VertexArrayState* Drawable::createVertexArrayStateImplementation(RenderInfo& renderInfo) const "<<this<<std::endl;
     VertexArrayState* vos = new osg::VertexArrayState(renderInfo.getState());
     vos->assignAllDispatchers();
     return vos;

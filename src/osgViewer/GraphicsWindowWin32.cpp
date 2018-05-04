@@ -23,6 +23,7 @@
 #include <osg/GL>
 #include <osg/DeleteHandler>
 #include <osg/ApplicationUsage>
+#include <osg/os_utils>
 
 #include <vector>
 #include <map>
@@ -31,7 +32,8 @@
 
 #define MOUSEEVENTF_FROMTOUCH           0xFF515700
 
-#if(WINVER < 0x0601)
+// _MSC_VER 1500: VS 2008
+#if(WINVER < 0x0601 || (_MSC_VER <= 1500 && !__MINGW32__))
 // Provide Declarations for Multitouch
 
 #define WM_TOUCH                        0x0240
@@ -79,6 +81,37 @@ typedef TOUCHINPUT const * PCTOUCHINPUT;
 
 #endif
 
+
+// provide declaration for WM_POINTER* events
+// which handle both touch and pen events
+// for Windows 8 and above
+
+// _MSC_VER 1600: VS 2010
+#if(WINVER < 0x0602 || (_MSC_VER <= 1600 && !__MINGW32__))
+
+#define WM_POINTERUPDATE                0x0245
+#define WM_POINTERDOWN                  0x0246
+#define WM_POINTERUP                    0x0247
+
+// PointerInput enumeration
+enum tagPOINTER_INPUT_TYPE {
+   PT_POINTER = 0x00000001,   // Generic pointer
+   PT_TOUCH = 0x00000002,   // Touch
+   PT_PEN = 0x00000003,   // Pen
+   PT_MOUSE = 0x00000004,   // Mouse
+//#if(WINVER >= 0x0603)
+   PT_TOUCHPAD = 0x00000005,   // Touchpad
+//#endif /* WINVER >= 0x0603 */
+};
+typedef DWORD POINTER_INPUT_TYPE;
+
+
+// methods to extract pointer info
+#define GET_POINTERID_WPARAM(wParam)                (LOWORD(wParam))
+#endif
+
+
+
 typedef
 BOOL
 (WINAPI GetTouchInputInfoFunc)(
@@ -98,10 +131,44 @@ BOOL
     HWND hwnd,
     ULONG ulFlags));
 
+
+// used together with WM_POINTER* events
+typedef
+BOOL
+(WINAPI
+GetPointerTypeFunc(
+   UINT32 pointerId,
+   POINTER_INPUT_TYPE *pointerType));
+
+
 // Declared static in order to get Header File clean
 static RegisterTouchWindowFunc *registerTouchWindowFunc = NULL;
 static CloseTouchInputHandleFunc *closeTouchInputHandleFunc = NULL;
 static GetTouchInputInfoFunc *getTouchInputInfoFunc = NULL;
+static GetPointerTypeFunc *getPointerTypeFunc = NULL;
+
+// DPI Awareness
+// #if(WINVER >= 0x0603)
+
+#ifndef DPI_ENUMS_DECLARED
+
+typedef enum PROCESS_DPI_AWARENESS {
+	PROCESS_DPI_UNAWARE = 0,
+	PROCESS_SYSTEM_DPI_AWARE = 1,
+	PROCESS_PER_MONITOR_DPI_AWARE = 2
+} PROCESS_DPI_AWARENESS;
+
+#endif // DPI_ENUMS_DECLARED
+
+typedef
+BOOL
+(WINAPI	SetProcessDpiAwarenessFunc(
+	PROCESS_DPI_AWARENESS dpi_awareness));
+
+static SetProcessDpiAwarenessFunc *setProcessDpiAwareness = NULL;
+// #endif
+
+
 
 using namespace osgViewer;
 
@@ -710,6 +777,9 @@ Win32WindowingSystem::Win32WindowingSystem()
         closeTouchInputHandleFunc = (CloseTouchInputHandleFunc *) GetProcAddress( hModule, "CloseTouchInputHandle");
         getTouchInputInfoFunc = (GetTouchInputInfoFunc *)  GetProcAddress( hModule, "GetTouchInputInfo");
 
+       // check if Win8 and later API is available
+       getPointerTypeFunc = (GetPointerTypeFunc*)GetProcAddress(hModule, "GetPointerType");
+
         if (!(registerTouchWindowFunc && closeTouchInputHandleFunc && getTouchInputInfoFunc))
         {
             registerTouchWindowFunc = NULL;
@@ -718,6 +788,21 @@ Win32WindowingSystem::Win32WindowingSystem()
             FreeLibrary( hModule);
         }
     }
+
+
+// #if(WINVER >= 0x0603)
+	// For Windows 8.1 and higher
+	//
+	// Per monitor DPI aware.This app checks for the DPI when it is created and adjusts the scale factor
+	// whenever the DPI changes.These applications are not automatically scaled by the system.
+	HMODULE hModuleShore = LoadLibrary("Shcore");
+	if (hModuleShore) {
+		setProcessDpiAwareness = (SetProcessDpiAwarenessFunc *) GetProcAddress(hModuleShore, "SetProcessDpiAwareness");
+		if (setProcessDpiAwareness) {
+			(*setProcessDpiAwareness)(PROCESS_DPI_AWARENESS::PROCESS_PER_MONITOR_DPI_AWARE);
+		}
+	}
+// #endif
 }
 
 Win32WindowingSystem::~Win32WindowingSystem()
@@ -1268,10 +1353,10 @@ void GraphicsWindowWin32::init()
     _applyWorkaroundForMultimonitorMultithreadNVidiaWin32Issues = true;
 #endif
 
-    const char* str = getenv("OSG_WIN32_NV_MULTIMON_MULTITHREAD_WORKAROUND");
-    if (str)
+    std::string str;
+    if (osg::getEnvVar("OSG_WIN32_NV_MULTIMON_MULTITHREAD_WORKAROUND", str))
     {
-        _applyWorkaroundForMultimonitorMultithreadNVidiaWin32Issues = (strcmp(str, "on")==0 || strcmp(str, "ON")==0 || strcmp(str, "On")==0 );
+        _applyWorkaroundForMultimonitorMultithreadNVidiaWin32Issues = (str=="on") || (str=="ON") || (str=="On");
     }
 }
 
@@ -1927,7 +2012,7 @@ bool GraphicsWindowWin32::setWindowDecorationImplementation( bool decorated )
     error  = ::GetLastError();
     if (result==0 && error)
     {
-        reportErrorForScreen("GraphicsWindowWin32::setWindowDecoration() - Unable to set window extented style", _traits->screenNum, error);
+        reportErrorForScreen("GraphicsWindowWin32::setWindowDecoration() - Unable to set window extended style", _traits->screenNum, error);
         return false;
     }
 
@@ -2510,11 +2595,36 @@ void GraphicsWindowWin32::transformMouseXY( float& x, float& y )
 
 LRESULT GraphicsWindowWin32::handleNativeWindowingEvent( HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
-    if ((GetMessageExtraInfo() & MOUSEEVENTF_FROMTOUCH) == MOUSEEVENTF_FROMTOUCH) return TRUE;
-
     //!@todo adapt windows event time to osgGA event queue time for better resolution
     double eventTime  = getEventQueue()->getTime();
     _timeOfLastCheckEvents = eventTime;
+
+    if ((GetMessageExtraInfo() & MOUSEEVENTF_FROMTOUCH) == MOUSEEVENTF_FROMTOUCH)
+    {
+        switch(uMsg)
+        {
+            /////////////////
+            case WM_SYSCOMMAND:
+            /////////////////
+            {
+                UINT cmd = LOWORD(wParam);
+                if (cmd == SC_CLOSE)
+                    getEventQueue()->closeWindow(eventTime);
+                break;
+            }
+            /////////////////
+            case WM_NCLBUTTONUP:
+            /////////////////
+            {
+                UINT cmd = LOWORD(wParam);
+                if (cmd == HTCLOSE)
+                    getEventQueue()->closeWindow(eventTime);
+                break;
+            }
+            default: break;
+        }
+        return TRUE;
+    }
 
     switch(uMsg)
     {
@@ -2715,7 +2825,7 @@ LRESULT GraphicsWindowWin32::handleNativeWindowingEvent( HWND hwnd, UINT uMsg, W
             {
                 // Wojciech Lewandowski: 2011/09/12
                 // Skip CONTROL | MENU | SHIFT tests because we are polling exact left or right keys
-                // above return press for both right and left so we may end up with incosistent
+                // above return press for both right and left so we may end up with inconsistent
                 // modifier mask if we report left control & right control while only right was pressed
                 LONG rightSideCode = 0;
                 switch( i )
@@ -2858,14 +2968,6 @@ LRESULT GraphicsWindowWin32::handleNativeWindowingEvent( HWND hwnd, UINT uMsg, W
                                 osg_event->addTouchPoint( ti[i].dwID, osgGA::GUIEventAdapter::TOUCH_BEGAN, pt.x, pt.y);
                             }
                         }
-                        else if(ti[i].dwFlags & TOUCHEVENTF_MOVE)
-                        {
-                            if (!osg_event) {
-                                osg_event = getEventQueue()->touchMoved(  ti[i].dwID, osgGA::GUIEventAdapter::TOUCH_MOVED, pt.x, pt.y);
-                            } else {
-                                osg_event->addTouchPoint( ti[i].dwID, osgGA::GUIEventAdapter::TOUCH_MOVED, pt.x, pt.y);
-                            }
-                        }
                         else if(ti[i].dwFlags & TOUCHEVENTF_UP)
                         {
                             // No double tap detection with RAW TOUCH Events, sorry.
@@ -2875,6 +2977,14 @@ LRESULT GraphicsWindowWin32::handleNativeWindowingEvent( HWND hwnd, UINT uMsg, W
                                 osg_event->addTouchPoint( ti[i].dwID, osgGA::GUIEventAdapter::TOUCH_ENDED, pt.x, pt.y);
                             }
                         }
+                        else if(ti[i].dwFlags & TOUCHEVENTF_MOVE)
+                        {
+                            if (!osg_event) {
+                                osg_event = getEventQueue()->touchMoved(  ti[i].dwID, osgGA::GUIEventAdapter::TOUCH_MOVED, pt.x, pt.y);
+                            } else {
+                                osg_event->addTouchPoint( ti[i].dwID, osgGA::GUIEventAdapter::TOUCH_MOVED, pt.x, pt.y);
+                            }
+                        }
                     }
                 }
                 if (closeTouchInputHandleFunc)
@@ -2882,6 +2992,117 @@ LRESULT GraphicsWindowWin32::handleNativeWindowingEvent( HWND hwnd, UINT uMsg, W
                 delete [] ti;
             }
             break;
+
+
+            /************************************************************************/
+            /*              TOUCH inputs for Win8 and later                         */
+            /************************************************************************/
+            // Note by Riccardo Corsi, 2017-03-16
+            // Currently only handle the PEN input which is not handled nicely by the
+            // WM_TOUCH framework.
+            // At the moment the PEN is mapped to the mouse, emulating LEFT button click.
+            // WM_POINTER* messages could entirely replace the WM_TOUCH framework,
+            // at the moment if the input doesn't come from a PEN, than the DefWindowProc()
+            // default implementation is invoked, which will generate the WM_TOUCH messages.
+
+
+            /////
+            case WM_POINTERDOWN:
+            /////
+            {
+                UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+                POINTER_INPUT_TYPE pointerType = PT_POINTER;
+
+                // check pointer type
+                if (getPointerTypeFunc)
+                {
+                    (getPointerTypeFunc)(pointerId, &pointerType);
+                    // handle PEN only
+                    if (pointerType == PT_PEN)
+                    {
+                        POINT pt;
+                        pt.x = GET_X_LPARAM(lParam);
+                        pt.y = GET_Y_LPARAM(lParam);
+                        ScreenToClient(hwnd, &pt);
+
+                        getEventQueue()->mouseButtonPress(pt.x, pt.y, osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON);
+                    }
+                    // call default implementation to fallback on WM_TOUCH
+                    else
+                    {
+                        if (_ownsWindow)
+                        return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
+                    }
+                }
+            }
+
+            break;
+
+            /////
+            case WM_POINTERUPDATE:
+            /////
+            {
+                UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+                POINTER_INPUT_TYPE pointerType = PT_POINTER;
+
+                // check pointer type
+                if (getPointerTypeFunc)
+                {
+                    (getPointerTypeFunc)(pointerId, &pointerType);
+                    // handle PEN only
+                    if (pointerType == PT_PEN)
+                    {
+                        POINT pt;
+                        pt.x = GET_X_LPARAM(lParam);
+                        pt.y = GET_Y_LPARAM(lParam);
+                        ScreenToClient(hwnd, &pt);
+
+                        getEventQueue()->mouseMotion(pt.x, pt.y);
+                    }
+                    // call default implementation to fallback on WM_TOUCH
+                    else
+                    {
+                        if (_ownsWindow)
+                        return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
+                    }
+                }
+            }
+
+            break;
+
+
+            /////
+            case WM_POINTERUP:
+            /////
+            {
+                UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+                POINTER_INPUT_TYPE pointerType = PT_POINTER;
+
+                // check pointer type
+                if (getPointerTypeFunc)
+                {
+                    (getPointerTypeFunc)(pointerId, &pointerType);
+                    // handle PEN only
+                    if (pointerType == PT_PEN)
+                    {
+                        POINT pt;
+                        pt.x = GET_X_LPARAM(lParam);
+                        pt.y = GET_Y_LPARAM(lParam);
+                        ScreenToClient(hwnd, &pt);
+
+                        getEventQueue()->mouseButtonRelease(pt.x, pt.y, osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON);
+                    }
+                    // call default implementation to fallback on WM_TOUCH
+                    else
+                    {
+                        if (_ownsWindow)
+                        return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
+                    }
+                }
+            }
+
+            break;
+
 
         /////////////////
         default         :

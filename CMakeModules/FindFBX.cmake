@@ -9,7 +9,12 @@
 # correspond to the ./configure --prefix=$FBX_DIR
 
 IF(APPLE)
+  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # using regular Clang or AppleClang
+    SET(FBX_LIBDIR "clang")
+  else()
     SET(FBX_LIBDIR "gcc4/ub")
+  endif()
 ELSEIF(CMAKE_COMPILER_IS_GNUCXX)
     SET(FBX_LIBDIR "gcc4")
 ELSEIF(MSVC80)
@@ -39,17 +44,30 @@ ENDIF()
 #try to use 2015.1 or 2014.2 version
 
 IF(APPLE)
-    SET(FBX_LIBNAME "libfbxsdk")
+    SET(FBX_LIBNAME "fbxsdk")
 ELSEIF(CMAKE_COMPILER_IS_GNUCXX)
     SET(FBX_LIBNAME "fbxsdk")
 ELSE()
-    SET(FBX_LIBNAME "libfbxsdk-md")
+    OPTION(FBX_SHARED OFF)
+    IF(FBX_SHARED)
+        SET(FBX_LIBNAME "libfbxsdk")
+    ELSE()
+        SET(FBX_LIBNAME "libfbxsdk-md")
+    ENDIF()
 ENDIF()
 
 SET(FBX_LIBNAME_DEBUG ${FBX_LIBNAME}d)
 
 SET( FBX_SEARCH_PATHS
     $ENV{FBX_DIR}
+    "$ENV{ProgramW6432}/Autodesk/FBX/FBX SDK/2018.1.1"
+    "$ENV{PROGRAMFILES}/Autodesk/FBX/FBX SDK/2018.1.1"
+    "/Applications/Autodesk/FBX\ SDK/2018.0"
+    "$ENV{ProgramW6432}/Autodesk/FBX/FBX SDK/2017.1"
+    "$ENV{PROGRAMFILES}/Autodesk/FBX/FBX SDK/2017.1"
+    "/Applications/Autodesk/FBX SDK/2017.1"
+    "$ENV{ProgramW6432}/Autodesk/FBX/FBX SDK/2016.1.2"
+    "$ENV{PROGRAMFILES}/Autodesk/FBX/FBX SDK/2016.1.2"
     "$ENV{ProgramW6432}/Autodesk/FBX/FBX SDK/2016.1.1"
     "$ENV{PROGRAMFILES}/Autodesk/FBX/FBX SDK/2016.1.1"
     "$ENV{ProgramW6432}/Autodesk/FBX/FBX SDK/2015.1"

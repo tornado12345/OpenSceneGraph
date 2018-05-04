@@ -210,10 +210,10 @@ class ReaderWriterPNG : public osgDB::ReaderWriter
                     pinfo->Depth  = depth;
                 }
 
-                OSG_INFO<<"width="<<width<<" height="<<height<<" depth="<<depth<<std::endl;
-                if ( color == PNG_COLOR_TYPE_RGB) { OSG_INFO << "color == PNG_COLOR_TYPE_RGB "<<std::endl; }
-                if ( color == PNG_COLOR_TYPE_GRAY) { OSG_INFO << "color == PNG_COLOR_TYPE_GRAY "<<std::endl; }
-                if ( color == PNG_COLOR_TYPE_GRAY_ALPHA) { OSG_INFO << "color ==  PNG_COLOR_TYPE_GRAY_ALPHA"<<std::endl; }
+                OSG_DEBUG<<"width="<<width<<" height="<<height<<" depth="<<depth<<std::endl;
+                if ( color == PNG_COLOR_TYPE_RGB) { OSG_DEBUG << "color == PNG_COLOR_TYPE_RGB "<<std::endl; }
+                if ( color == PNG_COLOR_TYPE_GRAY) { OSG_DEBUG << "color == PNG_COLOR_TYPE_GRAY "<<std::endl; }
+                if ( color == PNG_COLOR_TYPE_GRAY_ALPHA) { OSG_DEBUG << "color ==  PNG_COLOR_TYPE_GRAY_ALPHA"<<std::endl; }
 
                 // png default to big endian, so we'll need to swap bytes if on a little endian machine.
                 if (depth>8 && getCpuByteOrder()==osg::LittleEndian)
@@ -307,6 +307,18 @@ class ReaderWriterPNG : public osgDB::ReaderWriter
                     pixelFormat = GL_RGBA;
 
                 int internalFormat = pixelFormat;
+                if (depth > 8)
+                {
+                    switch(color)
+                    {
+                      case(GL_LUMINANCE): internalFormat = GL_LUMINANCE16; break;
+                      case(GL_ALPHA): internalFormat = GL_ALPHA16; break;
+                      case(GL_LUMINANCE_ALPHA): internalFormat = GL_LUMINANCE16_ALPHA16; break;
+                      case(GL_RGB): internalFormat = GL_RGB16; break;
+                      case(GL_RGBA): internalFormat = GL_RGBA16; break;
+                      default: break;
+                    }
+                }
 
                 png_destroy_read_struct(&png, &info, &endinfo);
 

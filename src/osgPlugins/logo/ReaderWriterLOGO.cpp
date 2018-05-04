@@ -59,7 +59,7 @@ class Logos: public osg::Drawable
                         vp->height() != logos->getViewport()->height() )
                     {
                         logos->getViewport()->setViewport( vp->x(), vp->y(), vp->width(), vp->height() );
-                        logos->dirtyDisplayList();
+                        logos->dirtyGLObjects();
                     }
                 }
                 return false;
@@ -98,7 +98,7 @@ class Logos: public osg::Drawable
 
         virtual void drawImplementation(osg::RenderInfo& renderInfo) const
         {
-        #if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE) && !defined(OSG_GL3_AVAILABLE)
+        #if !defined(OSG_GLES1_AVAILABLE) && !defined(OSG_GLES2_AVAILABLE) && !defined(OSG_GLES3_AVAILABLE) && !defined(OSG_GL3_AVAILABLE)
 
             if( renderInfo.getContextID() != _contextID )
                 return;
@@ -259,7 +259,7 @@ class LOGOReaderWriter : public osgDB::ReaderWriter
             Logos::RelativePosition pos = Logos::LowerRight;
 
 
-            std::ifstream fin(filePath.c_str());
+            std::ifstream fin(fileName.c_str());
             if (!fin) return NULL;
 
             while(fin)
@@ -321,7 +321,7 @@ class LOGOReaderWriter : public osgDB::ReaderWriter
             if( ld->hasLogos() )
                 geode->addDrawable( ld );
 
-            geode->setCullingActive(false);
+            ld->setCullingActive(false);
             return geode;
         }
 };

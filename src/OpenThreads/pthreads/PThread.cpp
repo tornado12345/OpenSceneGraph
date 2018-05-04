@@ -64,6 +64,7 @@ using namespace OpenThreads;
 # define DPRINTF(arg)
 #endif
 
+
 //-----------------------------------------------------------------------------
 // Initialize the static unique ids.
 //
@@ -111,8 +112,7 @@ namespace OpenThreads
 #if defined(HAVE_PTHREAD_SETAFFINITY_NP) || defined(HAVE_THREE_PARAM_SCHED_SETAFFINITY) || defined(HAVE_TWO_PARAM_SCHED_SETAFFINITY)
 static void setAffinity(const Affinity& affinity)
 {
-
-    std::cout<<"setProcessAffinity : "<< affinity.activeCPUs.size() <<std::endl;
+    //std::cout<<"setProcessAffinity : "<< affinity.activeCPUs.size() <<std::endl;
     cpu_set_t cpumask;
     CPU_ZERO( &cpumask );
     unsigned int numprocessors = OpenThreads::GetNumberOfProcessors();
@@ -124,7 +124,7 @@ static void setAffinity(const Affinity& affinity)
         {
             if (*itr<numprocessors)
             {
-                std::cout<<"   setting CPU : "<< *itr<<std::endl;
+                //std::cout<<"   setting CPU : "<< *itr<<std::endl;
                 CPU_SET( *itr, &cpumask );
             }
         }
@@ -136,7 +136,7 @@ static void setAffinity(const Affinity& affinity)
         // We need to explicitly set it to all CPUs, if no affinity was specified.
         for (unsigned int i = 0; i < numprocessors; ++i)
         {
-            std::cout<<"   Fallback setting CPU : "<< i<<std::endl;
+            //std::cout<<"   Fallback setting CPU : "<< i<<std::endl;
 
             CPU_SET( i, &cpumask );
         }
@@ -191,7 +191,7 @@ private:
         int status = pthread_setspecific(PThreadPrivateData::s_tls_key, thread);
         if (status)
         {
-            printf("Error: pthread_setspecific(,) returned error status, status = %d\n",status);
+           printf("Error: pthread_setspecific(,) returned error status, status = %d\n",status);
         }
 
         pthread_cleanup_push(thread_cleanup_handler, &tcs);
@@ -239,12 +239,12 @@ private:
 
             if(status != 0) {
             printf("THREAD INFO (%d) : Get sched: %s\n",
-                   thread->getProcessId(),
+                   (int)thread->getProcessId(),
                    strerror(status));
             } else {
             printf(
                 "THREAD INFO (%d) : Thread running at %s / Priority: %d\n",
-                thread->getProcessId(),
+                (int)thread->getProcessId(),
                 (my_policy == SCHED_FIFO ? "SCHEDULE_FIFO"
                  : (my_policy == SCHED_RR ? "SCHEDULE_ROUND_ROBIN"
                 : (my_policy == SCHED_OTHER ? "SCHEDULE_OTHER"
@@ -256,9 +256,8 @@ private:
 
             printf(
                 "THREAD INFO (%d) : Max priority: %d, Min priority: %d\n",
-                thread->getProcessId(),
+                (int)thread->getProcessId(),
                 max_priority, min_priority);
-
             }
 
         }
@@ -266,7 +265,7 @@ private:
         {
             printf(
             "THREAD INFO (%d) POSIX Priority scheduling not available\n",
-            thread->getProcessId());
+            (int)thread->getProcessId());
         }
 
         fflush(stdout);
@@ -402,7 +401,7 @@ int Thread::GetConcurrency()
 
 //----------------------------------------------------------------------------
 //
-// Decription: Constructor
+// Description: Constructor
 //
 // Use: public.
 //
@@ -419,7 +418,7 @@ Thread::Thread()
 
 //----------------------------------------------------------------------------
 //
-// Decription: Destructor
+// Description: Destructor
 //
 // Use: public.
 //
@@ -604,6 +603,12 @@ bool Thread::isRunning()
 //
 int Thread::start() {
 
+    PThreadPrivateData *pd = static_cast<PThreadPrivateData *> (_prvData);
+    if (pd->isRunning())
+    {
+        return 0;
+    }
+
     int status;
     pthread_attr_t thread_attr;
 
@@ -612,8 +617,6 @@ int Thread::start() {
     {
         return status;
     }
-
-    PThreadPrivateData *pd = static_cast<PThreadPrivateData *> (_prvData);
 
     //-------------------------------------------------------------------------
     // Set the stack size if requested, but not less than a platform reasonable
@@ -829,7 +832,7 @@ int Thread::setSchedulePriority(ThreadPriority priority) {
 
     pd->threadPriority = priority;
 
-    if(pd->isRunning)
+    if(pd->isRunning())
         return ThreadPrivateActions::SetThreadSchedulingParams(this);
     else
         return 0;
@@ -869,7 +872,7 @@ int Thread::setSchedulePolicy(ThreadPolicy policy)
 
     pd->threadPolicy = policy;
 
-    if(pd->isRunning)
+    if(pd->isRunning())
     return ThreadPrivateActions::SetThreadSchedulingParams(this);
     else
     return 0;

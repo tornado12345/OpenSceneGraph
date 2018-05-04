@@ -18,6 +18,7 @@
 #include <osg/View>
 #include <osg/GLObjects>
 #include <osg/ContextData>
+#include <osg/os_utils>
 
 #include <osg/FrameBufferObject>
 #include <osg/Program>
@@ -153,10 +154,10 @@ std::string GraphicsContext::ScreenIdentifier::displayName() const
 
 void GraphicsContext::ScreenIdentifier::readDISPLAY()
 {
-    const char* ptr = 0;
-    if ((ptr=getenv("DISPLAY")) != 0)
+    std::string str;
+    if (getEnvVar("DISPLAY", str))
     {
-        setScreenIdentifier(ptr);
+        setScreenIdentifier(str);
     }
 }
 
@@ -238,7 +239,7 @@ GraphicsContext::Traits::Traits(DisplaySettings* ds):
             swapBarrier(0),
             useMultiThreadedOpenGLEngine(false),
             useCursor(true),
-            glContextVersion("1.0"),
+            glContextVersion(OSG_GL_CONTEXT_VERSION),
             glContextFlags(0),
             glContextProfileMask(0),
             sharedContext(0),

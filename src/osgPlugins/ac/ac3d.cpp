@@ -731,7 +731,7 @@ class LineBin : public PrimitiveBin
 
     virtual bool beginPrimitive(unsigned nRefs)
     {
-        // Check if we have enough for a line or someting broken ...
+        // Check if we have enough for a line or something broken ...
         if (nRefs < 2) {
             OSG_WARN << "osgDB ac3d reader: detected line with less than 2 vertices!" << std::endl;
             return false;
@@ -823,7 +823,7 @@ class SurfaceBin : public PrimitiveBin {
         _refs.reserve(nRefs);
         _refs.clear();
 
-        // Check if we have enough for a line or someting broken ...
+        // Check if we have enough for a line or something broken ...
         if (nRefs < 3) {
             OSG_WARN << "osgDB ac3d reader: detected surface with less than 3 vertices!" << std::endl;
             return false;
@@ -1242,7 +1242,11 @@ readObject(std::istream& stream, FileData& fileData, const osg::Matrix& parentTr
         else if (token == "rot") {
             for (unsigned n = 0; n < 3; ++n)
                 for (unsigned m = 0; m < 3; ++m)
+#if 1
+                    stream >> transform(n, m);
+#else
                     stream >> transform(m, n);
+#endif
         }
         else if (token == "loc") {
             for (unsigned n = 0; n < 3; ++n)
