@@ -799,7 +799,7 @@ Win32WindowingSystem::Win32WindowingSystem()
 	if (hModuleShore) {
 		setProcessDpiAwareness = (SetProcessDpiAwarenessFunc *) GetProcAddress(hModuleShore, "SetProcessDpiAwareness");
 		if (setProcessDpiAwareness) {
-			(*setProcessDpiAwareness)(PROCESS_DPI_AWARENESS::PROCESS_PER_MONITOR_DPI_AWARE);
+			(*setProcessDpiAwareness)(PROCESS_PER_MONITOR_DPI_AWARE);
 		}
 	}
 // #endif
@@ -3147,15 +3147,8 @@ static RegisterWindowingSystemInterfaceProxy createWindowingSystemInterfaceProxy
 
 } // namespace OsgViewer
 
-#if 1
-REGISTER_WINDOWINGSYSTEMINTERFACE(Win32, Win32WindowingSystem)
-#else
-// declare C entry point for static compilation.
-extern "C" void OSGVIEWER_EXPORT graphicswindow_Win32(void)
-{
-    osg::GraphicsContext::setWindowingSystemInterface(osgViewer::Win32WindowingSystem::getInterface());
-}
-#endif
+
+REGISTER_WINDOWINGSYSTEMINTERFACE2(Win32,Win32WindowingSystem,OSGVIEWER_EXPORT)
 
 void GraphicsWindowWin32::raiseWindow()
 {

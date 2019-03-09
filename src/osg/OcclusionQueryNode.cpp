@@ -364,9 +364,7 @@ QueryGeometry::drawImplementation( osg::RenderInfo& renderInfo ) const
 
 }
 
-
-unsigned int
-QueryGeometry::getNumPixels( const osg::Camera* cam )
+QueryGeometry::QueryResult QueryGeometry::getQueryResult( const osg::Camera* cam )
 {
     osg::ref_ptr<osg::TestResult> tr;
     {
@@ -378,13 +376,20 @@ QueryGeometry::getNumPixels( const osg::Camera* cam )
             _results[ cam ] = tr;
         }
     }
-    return tr->_numPixels;
+    return QueryResult((tr->_init && !tr->_active), tr->_numPixels);
 }
 
+unsigned int
+QueryGeometry::getNumPixels( const osg::Camera* cam )
+{
+    return getQueryResult(cam).numPixels;
+}
 
 void
 QueryGeometry::releaseGLObjects( osg::State* state ) const
 {
+    Geometry::releaseGLObjects(state);
+
     if (!state)
     {
         // delete all query IDs for all contexts.
@@ -437,6 +442,7 @@ QueryGeometry::discardDeletedQueryObjects( unsigned int contextID )
 
 OcclusionQueryNode::OcclusionQueryNode()
   : _enabled( true ),
+    _validQueryGeometry( false ),
     _passed(false),
     _visThreshold( 500 ),
     _queryFrameCount( 5 ),
@@ -454,6 +460,7 @@ OcclusionQueryNode::~OcclusionQueryNode()
 
 OcclusionQueryNode::OcclusionQueryNode( const OcclusionQueryNode& oqn, const CopyOp& copyop )
   : Group( oqn, copyop ),
+    _validQueryGeometry( false ),
     _passed( false )
 {
     _enabled = oqn._enabled;
@@ -469,9 +476,27 @@ OcclusionQueryNode::OcclusionQueryNode( const OcclusionQueryNode& oqn, const Cop
 bool OcclusionQueryNode::getPassed( const Camera* camera, NodeVisitor& nv )
 {
     if ( !_enabled )
+    {
         // Queries are not enabled. The caller should be osgUtil::CullVisitor,
         //   return true to traverse the subgraphs.
-        return true;
+        _passed = true;
+        return _passed;
+    }
+
+    QueryGeometry* qg = static_cast< QueryGeometry* >( _queryGeode->getDrawable( 0 ) );
+
+    if ( !_validQueryGeometry )
+    {
+        // There're cases that the occlusion test result has been retrieved
+        // after the query geometry has been changed, it's the result of the
+        // geometry before the change.
+        qg->reset();
+
+        // The box of the query geometry is invalid, return false to not traverse
+        // the subgraphs.
+        _passed = false;
+        return _passed;
+    }
 
     {
         // Two situations where we want to simply do a regular traversal:
@@ -482,19 +507,22 @@ bool OcclusionQueryNode::getPassed( const Camera* camera, NodeVisitor& nv )
         const unsigned int& lastQueryFrame( _frameCountMap[ camera ] );
         if( ( lastQueryFrame == 0 ) ||
             ( (nv.getTraversalNumber() - lastQueryFrame) >  (_queryFrameCount + 1) ) )
-            return true;
+        {
+            _passed = true;
+            return _passed;
+        }
     }
 
     if (_queryGeode->getDrawable( 0 ) == NULL)
     {
         OSG_FATAL << "osgOQ: OcclusionQueryNode: No QueryGeometry." << std::endl;
         // Something's broke. Return true so we at least render correctly.
-        return true;
+        _passed = true;
+        return _passed;
     }
-    QueryGeometry* qg = static_cast< QueryGeometry* >( _queryGeode->getDrawable( 0 ) );
 
     // Get the near plane for the upcoming distance calculation.
-    float nearPlane;
+    osg::Matrix::value_type nearPlane;
     const osg::Matrix& proj( camera->getProjectionMatrix() );
     if( ( proj(3,3) != 1. ) || ( proj(2,3) != 0. ) || ( proj(1,3) != 0. ) || ( proj(0,3) != 0.) )
         nearPlane = proj(3,2) / (proj(2,2)-1.);  // frustum / perspective
@@ -505,14 +533,22 @@ bool OcclusionQueryNode::getPassed( const Camera* camera, NodeVisitor& nv )
     //   the results. Otherwise (near plane inside the BS shell) we are considered
     //   to have passed and don't need to retrieve the query.
     const osg::BoundingSphere& bs = getBound();
-    float distanceToEyePoint = nv.getDistanceToEyePoint( bs._center, false );
+    osg::Matrix::value_type distanceToEyePoint = nv.getDistanceToEyePoint( bs._center, false );
 
-    float distance = distanceToEyePoint - nearPlane - bs._radius;
-    _passed = ( distance <= 0.f );
+    osg::Matrix::value_type distance = distanceToEyePoint - nearPlane - bs._radius;
+    _passed = ( distance <= 0.0 );
     if (!_passed)
     {
-        int result = qg->getNumPixels( camera );
-        _passed = ( (unsigned int)(result) > _visThreshold );
+        QueryGeometry::QueryResult result = qg->getQueryResult( camera );
+        if (!result.valid)
+        {
+           // The query hasn't finished yet and the result still
+           // isn't available, return true to traverse the subgraphs.
+           _passed = true;
+           return _passed;
+        }
+
+        _passed = ( result.numPixels > _visThreshold );
     }
 
     return _passed;
@@ -520,6 +556,9 @@ bool OcclusionQueryNode::getPassed( const Camera* camera, NodeVisitor& nv )
 
 void OcclusionQueryNode::traverseQuery( const Camera* camera, NodeVisitor& nv )
 {
+    if (!_validQueryGeometry)
+        return;
+
     bool issueQuery;
     {
         const int curFrame = nv.getTraversalNumber();
@@ -557,17 +596,28 @@ BoundingSphere OcclusionQueryNode::computeBound() const
         ComputeBoundsVisitor cbv;
         nonConstThis->accept( cbv );
         BoundingBox bb = cbv.getBoundingBox();
+        const bool bbValid = bb.valid();
+        _validQueryGeometry = bbValid;
 
         osg::ref_ptr<Vec3Array> v = new Vec3Array;
         v->resize( 8 );
-        (*v)[0] = Vec3( bb._min.x(), bb._min.y(), bb._min.z() );
-        (*v)[1] = Vec3( bb._max.x(), bb._min.y(), bb._min.z() );
-        (*v)[2] = Vec3( bb._max.x(), bb._min.y(), bb._max.z() );
-        (*v)[3] = Vec3( bb._min.x(), bb._min.y(), bb._max.z() );
-        (*v)[4] = Vec3( bb._max.x(), bb._max.y(), bb._min.z() );
-        (*v)[5] = Vec3( bb._min.x(), bb._max.y(), bb._min.z() );
-        (*v)[6] = Vec3( bb._min.x(), bb._max.y(), bb._max.z() );
-        (*v)[7] = Vec3( bb._max.x(), bb._max.y(), bb._max.z() );
+
+        // Having (0,0,0) as vertices for the case of the invalid query geometry
+        // still isn't quite the right thing. But the query geometry is public
+        // accessible and therefore a user might expect eight vertices, so
+        // it seems safer to keep eight vertices in the geometry.
+
+        if (bbValid)
+        {
+            (*v)[0] = Vec3( bb._min.x(), bb._min.y(), bb._min.z() );
+            (*v)[1] = Vec3( bb._max.x(), bb._min.y(), bb._min.z() );
+            (*v)[2] = Vec3( bb._max.x(), bb._min.y(), bb._max.z() );
+            (*v)[3] = Vec3( bb._min.x(), bb._min.y(), bb._max.z() );
+            (*v)[4] = Vec3( bb._max.x(), bb._max.y(), bb._min.z() );
+            (*v)[5] = Vec3( bb._min.x(), bb._max.y(), bb._min.z() );
+            (*v)[6] = Vec3( bb._min.x(), bb._max.y(), bb._max.z() );
+            (*v)[7] = Vec3( bb._max.x(), bb._max.y(), bb._max.z() );
+        }
 
         Geometry* geom = static_cast< Geometry* >( nonConstThis->_queryGeode->getDrawable( 0 ) );
         geom->setVertexArray( v.get() );
@@ -584,6 +634,12 @@ BoundingSphere OcclusionQueryNode::computeBound() const
 void OcclusionQueryNode::setQueriesEnabled( bool enable )
 {
     _enabled = enable;
+}
+
+void OcclusionQueryNode::resetQueries()
+{
+   OpenThreads::ScopedLock<OpenThreads::Mutex> lock( _frameCountMutex );
+   _frameCountMap.clear();
 }
 
 // Should only be called outside of cull/draw. No thread issues.
@@ -711,13 +767,10 @@ void OcclusionQueryNode::createSupportNodes()
 
 void OcclusionQueryNode::releaseGLObjects( State* state ) const
 {
-    if(_queryGeode->getDrawable( 0 ) != NULL)
-    {
-        // Query object discard and deletion is handled by QueryGeometry support class.
-        OcclusionQueryNode* nonConstThis = const_cast< OcclusionQueryNode* >( this );
-        QueryGeometry* qg = static_cast< QueryGeometry* >( nonConstThis->_queryGeode->getDrawable( 0 ) );
-        qg->releaseGLObjects( state );
-    }
+    if (_queryGeode.valid()) _queryGeode->releaseGLObjects(state);
+    if (_debugGeode.valid()) _debugGeode->releaseGLObjects(state);
+
+    osg::Group::releaseGLObjects(state);
 }
 
 void OcclusionQueryNode::flushDeletedQueryObjects( unsigned int contextID, double currentTime, double& availableTime )

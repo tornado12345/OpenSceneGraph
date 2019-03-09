@@ -45,6 +45,10 @@
 
 #include <string.h>
 #include <memory>
+#include <iomanip>
+
+#include <iostream>
+#include <iomanip>
 
 struct STLOptionsStruct {
     bool smooth;
@@ -113,7 +117,7 @@ public:
     virtual WriteResult writeNode(const osg::Node& node, const std::string& fileName, const Options* = NULL) const;
 
 private:
-    class ReaderObject
+    class ReaderObject : public osg::Referenced
     {
     public:
         ReaderObject(bool noTriStripPolygons, bool generateNormals = true):
@@ -182,7 +186,7 @@ private:
             geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, _numFacets * 3));
 
             if(!_noTriStripPolygons) {
-                osgUtil::optimizeMesh(geom);
+                osgUtil::optimizeMesh(geom.get());
             }
 
             return geom;
@@ -293,6 +297,7 @@ private:
             else
                 *m_f << "solid " << node.getName() << std::endl;
 
+            *m_f << std::fixed << std::setprecision(7);
             for (unsigned int i = 0; i < node.getNumDrawables(); ++i)
             {
                 osg::TriangleFunctor<PushPoints> tf;
@@ -526,7 +531,7 @@ osgDB::ReaderWriter::ReadResult ReaderWriterSTL::readNode(const std::string& fil
     else
         readerObject = new AsciiReaderObject(localOptions.noTriStripPolygons);
 
-    std::auto_ptr<ReaderObject> readerPtr(readerObject);
+    osg::ref_ptr<ReaderObject> readerPtr(readerObject);
 
     while (1)
     {
