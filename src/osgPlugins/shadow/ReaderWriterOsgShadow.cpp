@@ -49,7 +49,7 @@ static bool getFilenameAndParams(const std::string& input, std::string& filename
             return false;
         }
 
-        // clear the params sting of any brackets.
+        // clear the params string of any brackets.
         std::string::size_type params_pos = params.size();
         for(; params_pos>0; )
         {
@@ -79,6 +79,11 @@ public:
     }
 
     virtual const char* className() const { return "osgShadow pseudo-loader"; }
+
+    virtual ReadResult readObject(const std::string& fileName, const osgDB::ReaderWriter::Options* options) const
+    {
+        return readNode(fileName, options); 
+    }
 
     virtual ReadResult readNode(const std::string& fileName, const osgDB::ReaderWriter::Options* options) const
     {

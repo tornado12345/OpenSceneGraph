@@ -399,7 +399,7 @@ void MultipassTechnique::init()
 
     if (_volumeTile->getLayer()==0)
     {
-        OSG_NOTICE<<"MultipassTechnique::init(), error no layer assigend to volume tile."<<std::endl;
+        OSG_NOTICE<<"MultipassTechnique::init(), error no layer assigned to volume tile."<<std::endl;
         return;
     }
 
@@ -422,62 +422,43 @@ void MultipassTechnique::init()
     {
         osg::Geometry* geom = new osg::Geometry;
 
-        osg::Vec3Array* coords = new osg::Vec3Array(8);
-        (*coords)[0] = osg::Vec3d(0.0,0.0,0.0);
-        (*coords)[1] = osg::Vec3d(1.0,0.0,0.0);
-        (*coords)[2] = osg::Vec3d(1.0,1.0,0.0);
-        (*coords)[3] = osg::Vec3d(0.0,1.0,0.0);
-        (*coords)[4] = osg::Vec3d(0.0,0.0,1.0);
-        (*coords)[5] = osg::Vec3d(1.0,0.0,1.0);
-        (*coords)[6] = osg::Vec3d(1.0,1.0,1.0);
-        (*coords)[7] = osg::Vec3d(0.0,1.0,1.0);
-        geom->setVertexArray(coords);
-
         osg::Vec4Array* colours = new osg::Vec4Array(1);
         (*colours)[0].set(1.0f,1.0f,1.0,1.0f);
         geom->setColorArray(colours, osg::Array::BIND_OVERALL);
 
-        osg::DrawElementsUShort* drawElements = new osg::DrawElementsUShort(GL_QUADS);
-        // bottom
+        // triangle strip of cube based on : http://www.cs.umd.edu/gvil/papers/av_ts.pdf
+        osg::Vec3Array* coords = new osg::Vec3Array(8);
+        (*coords)[0] = osg::Vec3d(0.0,1.0,1.0); // Back-top-left
+        (*coords)[1] = osg::Vec3d(1.0,1.0,1.0); // Back-top-right
+        (*coords)[2] = osg::Vec3d(0.0,0.0,1.0); // Front-top-left
+        (*coords)[3] = osg::Vec3d(1.0,0.0,1.0); // Front-top-right
+        (*coords)[4] = osg::Vec3d(0.0,1.0,0.0); // Back-bottom-left
+        (*coords)[5] = osg::Vec3d(1.0,1.0,0.0); // Back-bottom-right
+        (*coords)[6] = osg::Vec3d(1.0,0.0,0.0); // Front-bottom-right
+        (*coords)[7] = osg::Vec3d(0.0,0.0,0.0); // Front-bottom-left
+        geom->setVertexArray(coords);
+
+        osg::DrawElementsUShort* drawElements = new osg::DrawElementsUShort(GL_TRIANGLE_STRIP);
+
         drawElements->push_back(3);
         drawElements->push_back(2);
-        drawElements->push_back(1);
-        drawElements->push_back(0);
-
-        // bottom
-        drawElements->push_back(7);//7623
         drawElements->push_back(6);
-        drawElements->push_back(2);
-        drawElements->push_back(3);
-
-        // left
-        drawElements->push_back(4);//4730
         drawElements->push_back(7);
-        drawElements->push_back(3);
-        drawElements->push_back(0);
-
-        // right
-        drawElements->push_back(1);//1265
-        drawElements->push_back(2);
-        drawElements->push_back(6);
-        drawElements->push_back(5);
-
-        // front
-        drawElements->push_back(5);//5401
         drawElements->push_back(4);
+        drawElements->push_back(2);
         drawElements->push_back(0);
-        drawElements->push_back(1);
 
-        // top
-        drawElements->push_back(4);//4567
-        drawElements->push_back(5);
+        drawElements->push_back(3);
+        drawElements->push_back(1);
         drawElements->push_back(6);
-        drawElements->push_back(7);
+        drawElements->push_back(5);
+        drawElements->push_back(4);
+        drawElements->push_back(1);
+        drawElements->push_back(0);
 
         geom->addPrimitiveSet(drawElements);
 
         geode->addDrawable(geom);
-
     }
 
     _transform = new osg::MatrixTransform;
@@ -1085,15 +1066,15 @@ void MultipassTechnique::cull(osgUtil::CullVisitor* cv)
             switch(renderingMode)
             {
                 case(CUBE):
-                    // OSG_NOTICE<<"Travering Transform for CUBE rendering"<<std::endl;
+                    // OSG_NOTICE<<"Traversing Transform for CUBE rendering"<<std::endl;
                     _transform->accept(*cv);
                      break;
                 case(HULL):
-                    // OSG_NOTICE<<"Travering children for HULL rendering"<<std::endl;
+                    // OSG_NOTICE<<"Traversing children for HULL rendering"<<std::endl;
                     getVolumeTile()->osg::Group::traverse(*cv);
                     break;
                 case(CUBE_AND_HULL):
-                    // OSG_NOTICE<<"Travering Transform for CUBE_AND_HULL rendering"<<std::endl;
+                    // OSG_NOTICE<<"Traversing Transform for CUBE_AND_HULL rendering"<<std::endl;
                     _transform->accept(*cv);
                     //getVolumeTile()->osg::Group::traverse(*cv);
                     break;

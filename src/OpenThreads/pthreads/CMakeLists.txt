@@ -80,8 +80,15 @@ ELSE()
           # double check that pthread_setaffinity_np is available as FreeBSD header doesn't contain required function
           CHECK_CXX_SOURCE_COMPILES("
             #include <pthread.h>
+            #ifdef __FreeBSD__
+            #include <pthread_np.h>
+            #endif
             int main() {
+            #ifdef __FreeBSD__
+            cpuset_t cpumask;
+            #else
             cpu_set_t cpumask;
+            #endif
             CPU_ZERO( &cpumask );
             CPU_SET( 0, &cpumask );
             pthread_setaffinity_np( pthread_self(), sizeof(cpumask), &cpumask);
@@ -159,8 +166,8 @@ ELSE()
         INSTALL(
             TARGETS ${LIB_NAME}
             EXPORT  ${LIB_NAME}
-            ARCHIVE DESTINATION lib${LIB_POSTFIX} COMPONENT libopenthreads-dev
-            LIBRARY DESTINATION lib${LIB_POSTFIX} COMPONENT libopenthreads
+            ARCHIVE DESTINATION ${OSG_INSTALL_LIBDIR} COMPONENT libopenthreads-dev
+            LIBRARY DESTINATION ${OSG_INSTALL_LIBDIR} COMPONENT libopenthreads
             RUNTIME DESTINATION bin COMPONENT libopenthreads
         )
 
@@ -192,8 +199,8 @@ ELSE()
 
         INSTALL(
             TARGETS ${LIB_NAME}
-            ARCHIVE DESTINATION lib${LIB_POSTFIX} COMPONENT libopenthreads-dev
-            LIBRARY DESTINATION lib${LIB_POSTFIX} COMPONENT libopenthreads
+            ARCHIVE DESTINATION ${OSG_INSTALL_LIBDIR} COMPONENT libopenthreads-dev
+            LIBRARY DESTINATION ${OSG_INSTALL_LIBDIR} COMPONENT libopenthreads
             RUNTIME DESTINATION bin COMPONENT libopenthreads
         )
 

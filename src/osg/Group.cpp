@@ -137,7 +137,7 @@ bool Group::insertChild( unsigned int index, Node *child )
     }
 
     if (child->getNumChildrenWithOccluderNodes()>0 ||
-        dynamic_cast<osg::OccluderNode*>(child))
+        child->asOccluderNode())
     {
         setNumChildrenWithOccluderNodes(
             getNumChildrenWithOccluderNodes()+1
@@ -169,7 +169,7 @@ bool Group::removeChildren(unsigned int pos,unsigned int numChildrenToRemove)
         if (endOfRemoveRange>_children.size())
         {
             OSG_DEBUG<<"Warning: Group::removeChild(i,numChildrenToRemove) has been passed an excessive number"<<std::endl;
-            OSG_DEBUG<<"         of chilren to remove, trimming just to end of child list."<<std::endl;
+            OSG_DEBUG<<"         of children to remove, trimming just to end of child list."<<std::endl;
             endOfRemoveRange=_children.size();
         }
 
@@ -190,7 +190,7 @@ bool Group::removeChildren(unsigned int pos,unsigned int numChildrenToRemove)
 
             if (child->getNumChildrenWithCullingDisabled()>0 || !child->getCullingActive()) ++numChildrenWithCullingDisabledRemoved;
 
-            if (child->getNumChildrenWithOccluderNodes()>0 || dynamic_cast<osg::OccluderNode*>(child)) ++numChildrenWithOccludersRemoved;
+            if (child->getNumChildrenWithOccluderNodes()>0 || child->asOccluderNode()) ++numChildrenWithOccludersRemoved;
 
         }
 
@@ -326,12 +326,12 @@ bool Group::setChild( unsigned  int i, Node* newNode )
         // so need to check and update if required.
         int delta_numChildrenWithOccluderNodes = 0;
         if (origNode->getNumChildrenWithOccluderNodes()>0 ||
-            dynamic_cast<osg::OccluderNode*>(origNode.get()))
+            origNode.get()->asOccluderNode())
         {
             --delta_numChildrenWithOccluderNodes;
         }
         if (newNode->getNumChildrenWithOccluderNodes()>0 ||
-            dynamic_cast<osg::OccluderNode*>(newNode))
+            newNode->asOccluderNode())
         {
             ++delta_numChildrenWithOccluderNodes;
         }

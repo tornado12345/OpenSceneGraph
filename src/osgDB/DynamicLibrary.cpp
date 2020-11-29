@@ -19,7 +19,7 @@
 #endif
 #endif
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__)
 #include <io.h>
 #include <windows.h>
 #include <winbase.h>
@@ -59,7 +59,7 @@ DynamicLibrary::~DynamicLibrary()
     if (_handle)
     {
         OSG_INFO<<"Closing DynamicLibrary "<<_name<<std::endl;
-#if defined(WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__)
         FreeLibrary((HMODULE)_handle);
 #elif defined(__APPLE__) && defined(APPLE_PRE_10_3)
         NSUnLinkModule(static_cast<NSModule>(_handle), FALSE);
@@ -77,6 +77,8 @@ DynamicLibrary* DynamicLibrary::loadLibrary(const std::string& libraryName)
 
     HANDLE handle = NULL;
 
+    OSG_DEBUG << "DynamicLibrary::try to load library \"" << libraryName << "\"" << std::endl;
+    
     std::string fullLibraryName = osgDB::findLibraryFile(libraryName);
     if (!fullLibraryName.empty()) handle = getLibraryHandle( fullLibraryName ); // try the lib we have found
     else handle = getLibraryHandle( libraryName ); // haven't found a lib ourselves, see if the OS can find it simply from the library name.
@@ -93,7 +95,7 @@ DynamicLibrary::HANDLE DynamicLibrary::getLibraryHandle( const std::string& libr
 {
     HANDLE handle = NULL;
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__)
 #ifdef OSG_USE_UTF8_FILENAME
     handle = LoadLibraryW(  convertUTF8toUTF16(libraryName).c_str() );
 #else
@@ -142,7 +144,7 @@ DynamicLibrary::HANDLE DynamicLibrary::getLibraryHandle( const std::string& libr
 DynamicLibrary::PROC_ADDRESS DynamicLibrary::getProcAddress(const std::string& procName)
 {
     if (_handle==NULL) return NULL;
-#if defined(WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__)
     return osg::convertPointerType<DynamicLibrary::PROC_ADDRESS, FARPROC>( GetProcAddress( (HMODULE)_handle, procName.c_str() ) );
 #elif defined(__APPLE__) && defined(APPLE_PRE_10_3)
     std::string temp("_");

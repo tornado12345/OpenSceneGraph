@@ -1,6 +1,6 @@
 #include <sstream>
 #include <memory>
-#ifndef WIN32
+#ifndef _WIN32
 #include <strings.h>//for strncasecmp
 #endif
 
@@ -305,10 +305,14 @@ ReaderWriterFBX::readNode(const std::string& filenameInit,
             int nLightCount = 0;
             osg::ref_ptr<Options> localOptions = NULL;
             if (options)
+            {
                 localOptions = options->cloneOptions();
+            }
             else
+            {
                 localOptions = new osgDB::Options();
-            localOptions->setObjectCacheHint(osgDB::ReaderWriter::Options::CACHE_IMAGES);
+                localOptions->setObjectCacheHint(osgDB::ReaderWriter::Options::CACHE_IMAGES);
+            }
 
             std::string filePath = osgDB::getFilePath(filename);
             FbxMaterialToOsgStateSet fbxMaterialToOsgStateSet(filePath, localOptions.get(), lightmapTextures);
@@ -335,7 +339,7 @@ ReaderWriterFBX::readNode(const std::string& filenameInit,
                 for (unsigned int i = 0; i < sizeof(authoringTools) / sizeof(authoringTools[0]); ++i)
                 {
                     if (0 ==
-#ifdef WIN32
+#ifdef _WIN32
                         _strnicmp
 #else
                         strncasecmp
@@ -568,7 +572,34 @@ osgDB::ReaderWriter::WriteResult ReaderWriterFBX::writeNode(
         }
 
         FbxExporter* lExporter = FbxExporter::Create(pSdkManager, "");
-        pScene->GetGlobalSettings().SetAxisSystem(FbxAxisSystem::eOpenGL);
+
+        // default axis system is openGL
+        FbxAxisSystem::EPreDefinedAxisSystem axisSystem = FbxAxisSystem::eOpenGL;
+
+        // check options
+        if (options)
+        {
+           std::string axisOption = options->getPluginStringData("FBX-AxisSystem");
+           if (!axisOption.empty())
+           {
+              if (axisOption == "MayaZUp")
+                 axisSystem = FbxAxisSystem::eMayaZUp;
+              else if (axisOption == "MayaYUp")
+                 axisSystem = FbxAxisSystem::eMayaYUp;
+              else if (axisOption == "Max")
+                 axisSystem = FbxAxisSystem::eMax;
+              else if (axisOption == "MotionBuilder")
+                 axisSystem = FbxAxisSystem::eMotionBuilder;
+              else if (axisOption == "OpenGL")
+                 axisSystem = FbxAxisSystem::eOpenGL;
+              else if (axisOption == "DirectX")
+                 axisSystem = FbxAxisSystem::eDirectX;
+              else if (axisOption == "Lightwave")
+                 axisSystem = FbxAxisSystem::eLightwave;
+           }
+        }
+
+        pScene->GetGlobalSettings().SetAxisSystem(axisSystem);
 
         // Ensure the directory exists or else the FBX SDK will fail
         if (!osgDB::makeDirectoryForFile(filename)) {

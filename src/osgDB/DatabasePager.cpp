@@ -34,7 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -1646,7 +1646,12 @@ void DatabasePager::addLoadedDataToSceneGraph(const osg::FrameStamp &frameStamp)
                 osg::ProxyNode* proxyNode = dynamic_cast<osg::ProxyNode*>(group.get());
                 if (proxyNode)
                 {
-                    proxyNode->getDatabaseRequest(proxyNode->getNumChildren()) = 0;
+                    for (unsigned int i = 0; i < proxyNode->getNumFileNames(); ++i) {
+                        if (proxyNode->getDatabaseRequest(i) == databaseRequest) {
+                            proxyNode->getDatabaseRequest(i) = 0;
+                            break;
+                        }
+                    }
                 }
             }
 

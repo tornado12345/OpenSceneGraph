@@ -172,7 +172,7 @@ OutputStream& OutputStream::operator<<( const osg::Vec4ui& v )
 
 
 OutputStream& OutputStream::operator<<( const osg::Quat& q )
-{ *this << q.x() << q.y() << q.z() << q.w(); return *this; }
+{ *this << (double)q.x() << (double)q.y() << (double)q.z() << (double)q.w(); return *this; }
 
 OutputStream& OutputStream::operator<<( const osg::Plane& p )
 { *this << (double)p[0] << (double)p[1] << (double)p[2] << (double)p[3]; return *this; }
@@ -495,6 +495,12 @@ void OutputStream::writeImage( const osg::Image* img )
                 imageFileName = "image.dds";
             }
 
+            std::string imagePath = osgDB::getFilePath(imageFileName);
+            if (!imagePath.empty() && !osgDB::fileExists(imagePath))
+            {
+                osgDB::makeDirectory(imagePath);
+            }
+
             bool result = osgDB::writeImageFile( *img, imageFileName );
             OSG_NOTICE << "OutputStream::writeImage(): Write image data to external file " << imageFileName << std::endl;
             if ( !result )
@@ -570,7 +576,7 @@ void OutputStream::writeImage( const osg::Image* img )
                     std::string encodedData;
                     e.encode((char*)img_itr.data(), img_itr.size(), encodedData);
                     // Each set of data is written into a separate string so we can
-                    // distiguish between main data and all mipmap levels, so writing
+                    // distinguish between main data and all mipmap levels, so writing
                     // mipmap size is not required for ASCII mode.
                     writeWrappedString(encodedData);
                 }
@@ -775,7 +781,7 @@ void OutputStream::start( OutputIterator* outIterator, OutputStream::WriteType t
         }
 
         // From SOVERSION 98, start to support binary begin/end brackets so we can easily ignore
-        // errors and unsupport classes, enabling the attribute bit
+        // errors and unsupported classes, enabling the attribute bit
         if ( _useRobustBinaryFormat )
         {
             outIterator->setSupportBinaryBrackets( true );

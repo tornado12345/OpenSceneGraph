@@ -57,11 +57,18 @@ public:
     ReaderWriterTXP()
     {
         supportsExtension("txp","Terrapage txp format");
+        supportsEnvironment("OSG_TXP_DEFAULT_MAX_ANISOTROPY", "default value to use when setting up textures");
     }
 
     virtual const char* className() const
     {
         return "TXP Reader/Writer";
+    }
+
+
+    virtual ReadResult readObject(const std::string& fileName, const osgDB::ReaderWriter::Options* options) const
+    {
+        return readNode(fileName, options);
     }
 
     virtual ReadResult readNode(const std::string& file, const osgDB::ReaderWriter::Options* options) const

@@ -29,7 +29,7 @@
 #include <string.h>
 #include <fcntl.h>
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__)
 #  include <io.h>
 #else
 #  include <unistd.h>
@@ -51,6 +51,11 @@ public:
 
     virtual const char* className () const {
         return "Quake MD2 Reader";
+    }
+
+    virtual ReadResult readObject(const std::string& filename, const osgDB::ReaderWriter::Options* options) const
+    {
+        return readNode(filename, options);
     }
 
     virtual ReadResult readNode (const std::string& filename, const osgDB::ReaderWriter::Options* options) const;

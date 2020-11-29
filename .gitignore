@@ -83,6 +83,10 @@ PlatformSpecifics/Windows/*.rc
 *.sdf
 *.opensdf
 
+# Visual Studio - Cache/Options Directory
+.vs/
+.vscode/*
+
 #osx xcode
 DerivedData/
 *.DS_Store
@@ -96,3 +100,7 @@ _CPack_Packages/
 #packages
 *.tar.gz
 *.zip
+
+#individual build files
+config.yaml
+_build

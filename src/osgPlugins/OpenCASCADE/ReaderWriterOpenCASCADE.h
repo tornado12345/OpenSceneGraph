@@ -24,7 +24,7 @@
 /// \brief header file for creating osgdb plugin for IGES format
 /// \author Abhishek Bansal, Engineer Graphics, vizExperts India Pvt. Ltd. 
 
-#ifdef WIN32
+#ifdef _WIN32
 /// \brief preproccessor macro required for compilation with open cascade
 /// \todo not sure what it does
 #define WNT
@@ -61,6 +61,12 @@ class ReaderWritterOpenCASCADE: public osgDB::ReaderWriter
 
         /// \brief returns class name
         virtual const char* className() const { return "STEP/IGES Reader"; }
+
+
+        virtual ReadResult readObject(const std::string& fileName, const osgDB::ReaderWriter::Options* options) const
+        {
+            return readNode(fileName, options);
+        }
 
         virtual osgDB::ReaderWriter::ReadResult readNode(const std::string& fileName, const osgDB::ReaderWriter::Options*) const;
 

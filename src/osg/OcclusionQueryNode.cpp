@@ -48,6 +48,36 @@
 namespace osg
 {
 
+QueryGeometry* createDefaultQueryGeometry( const std::string& name )
+{
+    GLushort indices[] = { 0, 1, 2, 3,  4, 5, 6, 7,
+        0, 3, 6, 5,  2, 1, 4, 7,
+        5, 4, 1, 0,  2, 7, 6, 3 };
+
+    ref_ptr<QueryGeometry> geom = new QueryGeometry( name );
+    geom->setDataVariance( Object::DYNAMIC );
+    geom->addPrimitiveSet( new DrawElementsUShort( PrimitiveSet::QUADS, 24, indices ) );
+
+    return geom.release();
+}
+
+Geometry* createDefaultDebugQueryGeometry()
+{
+    GLushort indices[] = { 0, 1, 2, 3,  4, 5, 6, 7,
+        0, 3, 6, 5,  2, 1, 4, 7,
+        5, 4, 1, 0,  2, 7, 6, 3 };
+
+    ref_ptr<Vec4Array> ca = new Vec4Array;
+    ca->push_back( Vec4( 1.f, 1.f, 1.f, 1.f ) );
+
+    ref_ptr<Geometry> geom = new Geometry;
+    geom->setDataVariance( Object::DYNAMIC );
+    geom->setColorArray( ca.get(), Array::BIND_OVERALL );
+    geom->addPrimitiveSet( new DrawElementsUShort( PrimitiveSet::QUADS, 24, indices ) );
+
+    return geom.release();
+}
+
 // Create and return a StateSet appropriate for performing an occlusion
 //   query test (disable lighting, texture mapping, etc). Probably some
 //   room for improvement here. Could disable shaders, for example.
@@ -290,15 +320,20 @@ QueryGeometry::drawImplementation( osg::RenderInfo& renderInfo ) const
 
     osg::Camera* cam = renderInfo.getCurrentCamera();
 
-    // Add callbacks if necessary.
-    if (!cam->getPostDrawCallback())
+    RetrieveQueriesCallback* rqcb = cam->findPostDrawCallback<RetrieveQueriesCallback>();
+    if (!rqcb)
     {
-        RetrieveQueriesCallback* rqcb = new RetrieveQueriesCallback( ext );
-        cam->setPostDrawCallback( rqcb );
+        rqcb = new RetrieveQueriesCallback( ext );
+        cam->addPostDrawCallback( rqcb );
 
-        ClearQueriesCallback* cqcb = new ClearQueriesCallback;
+        ClearQueriesCallback* cqcb = cam->findPreDrawCallback<ClearQueriesCallback>();
+        if (!cqcb)
+        {
+            cqcb = new ClearQueriesCallback;
+            cam->addPreDrawCallback( cqcb );
+        }
+
         cqcb->_rqcb = rqcb;
-        cam->setPreDrawCallback( cqcb );
     }
 
     // Get TestResult from Camera map
@@ -312,7 +347,6 @@ QueryGeometry::drawImplementation( osg::RenderInfo& renderInfo ) const
             _results[ cam ] = tr;
         }
     }
-
 
     // Issue query
     if (!tr->_init)
@@ -328,9 +362,6 @@ QueryGeometry::drawImplementation( osg::RenderInfo& renderInfo ) const
         return;
     }
 
-    // Add TestResult to RQCB.
-    RetrieveQueriesCallback* rqcb = dynamic_cast<
-        RetrieveQueriesCallback* >( cam->getPostDrawCallback() );
     if (!rqcb)
     {
         OSG_FATAL << "osgOQ: QG: Invalid RQCB." << std::endl;
@@ -364,7 +395,7 @@ QueryGeometry::drawImplementation( osg::RenderInfo& renderInfo ) const
 
 }
 
-QueryGeometry::QueryResult QueryGeometry::getQueryResult( const osg::Camera* cam )
+QueryGeometry::QueryResult QueryGeometry::getQueryResult( const osg::Camera* cam ) const
 {
     osg::ref_ptr<osg::TestResult> tr;
     {
@@ -380,7 +411,7 @@ QueryGeometry::QueryResult QueryGeometry::getQueryResult( const osg::Camera* cam
 }
 
 unsigned int
-QueryGeometry::getNumPixels( const osg::Camera* cam )
+QueryGeometry::getNumPixels( const osg::Camera* cam ) const
 {
     return getQueryResult(cam).numPixels;
 }
@@ -442,7 +473,7 @@ QueryGeometry::discardDeletedQueryObjects( unsigned int contextID )
 
 OcclusionQueryNode::OcclusionQueryNode()
   : _enabled( true ),
-    _validQueryGeometry( false ),
+    _queryGeometryState( INVALID ),
     _passed(false),
     _visThreshold( 500 ),
     _queryFrameCount( 5 ),
@@ -460,7 +491,7 @@ OcclusionQueryNode::~OcclusionQueryNode()
 
 OcclusionQueryNode::OcclusionQueryNode( const OcclusionQueryNode& oqn, const CopyOp& copyop )
   : Group( oqn, copyop ),
-    _validQueryGeometry( false ),
+    _queryGeometryState( INVALID ),
     _passed( false )
 {
     _enabled = oqn._enabled;
@@ -485,7 +516,7 @@ bool OcclusionQueryNode::getPassed( const Camera* camera, NodeVisitor& nv )
 
     QueryGeometry* qg = static_cast< QueryGeometry* >( _queryGeode->getDrawable( 0 ) );
 
-    if ( !_validQueryGeometry )
+    if ( !isQueryGeometryValid() )
     {
         // There're cases that the occlusion test result has been retrieved
         // after the query geometry has been changed, it's the result of the
@@ -556,7 +587,7 @@ bool OcclusionQueryNode::getPassed( const Camera* camera, NodeVisitor& nv )
 
 void OcclusionQueryNode::traverseQuery( const Camera* camera, NodeVisitor& nv )
 {
-    if (!_validQueryGeometry)
+    if (!isQueryGeometryValid() || !_enabled)
         return;
 
     bool issueQuery;
@@ -575,9 +606,11 @@ void OcclusionQueryNode::traverseQuery( const Camera* camera, NodeVisitor& nv )
 
 void OcclusionQueryNode::traverseDebug( NodeVisitor& nv )
 {
-    if (_debugBB)
+    if (_debugBB && _enabled)
+    {
         // If requested, display the debug geometry
         _debugGeode->accept( nv );
+    }
 }
 
 BoundingSphere OcclusionQueryNode::computeBound() const
@@ -588,42 +621,13 @@ BoundingSphere OcclusionQueryNode::computeBound() const
         //   an application thread or by a non-osgViewer application.
         OpenThreads::ScopedLock<OpenThreads::Mutex> lock( _computeBoundMutex )  ;
 
-        // This is the logical place to put this code, but the method is const. Cast
-        //   away constness to compute the bounding box and modify the query geometry.
-        osg::OcclusionQueryNode* nonConstThis = const_cast<osg::OcclusionQueryNode*>( this );
-
-
-        ComputeBoundsVisitor cbv;
-        nonConstThis->accept( cbv );
-        BoundingBox bb = cbv.getBoundingBox();
-        const bool bbValid = bb.valid();
-        _validQueryGeometry = bbValid;
-
-        osg::ref_ptr<Vec3Array> v = new Vec3Array;
-        v->resize( 8 );
-
-        // Having (0,0,0) as vertices for the case of the invalid query geometry
-        // still isn't quite the right thing. But the query geometry is public
-        // accessible and therefore a user might expect eight vertices, so
-        // it seems safer to keep eight vertices in the geometry.
-
-        if (bbValid)
+        if (_queryGeometryState != USER_DEFINED)
         {
-            (*v)[0] = Vec3( bb._min.x(), bb._min.y(), bb._min.z() );
-            (*v)[1] = Vec3( bb._max.x(), bb._min.y(), bb._min.z() );
-            (*v)[2] = Vec3( bb._max.x(), bb._min.y(), bb._max.z() );
-            (*v)[3] = Vec3( bb._min.x(), bb._min.y(), bb._max.z() );
-            (*v)[4] = Vec3( bb._max.x(), bb._max.y(), bb._min.z() );
-            (*v)[5] = Vec3( bb._min.x(), bb._max.y(), bb._min.z() );
-            (*v)[6] = Vec3( bb._min.x(), bb._max.y(), bb._max.z() );
-            (*v)[7] = Vec3( bb._max.x(), bb._max.y(), bb._max.z() );
+            // This is the logical place to put this code, but the method is const. Cast
+            //   away constness to compute the bounding box and modify the query geometry.
+            osg::OcclusionQueryNode* nonConstThis = const_cast<osg::OcclusionQueryNode*>( this );
+            nonConstThis->updateDefaultQueryGeometry();
         }
-
-        Geometry* geom = static_cast< Geometry* >( nonConstThis->_queryGeode->getDrawable( 0 ) );
-        geom->setVertexArray( v.get() );
-
-        geom = static_cast< osg::Geometry* >( nonConstThis->_debugGeode->getDrawable( 0 ) );
-        geom->setVertexArray( v.get() );
     }
 
     return Group::computeBound();
@@ -721,21 +725,12 @@ bool OcclusionQueryNode::getPassed() const
 
 void OcclusionQueryNode::createSupportNodes()
 {
-    GLushort indices[] = { 0, 1, 2, 3,  4, 5, 6, 7,
-        0, 3, 6, 5,  2, 1, 4, 7,
-        5, 4, 1, 0,  2, 7, 6, 3 };
-
     {
         // Add the test geometry Geode
         _queryGeode = new Geode;
         _queryGeode->setName( "OQTest" );
         _queryGeode->setDataVariance( Object::DYNAMIC );
-
-        ref_ptr< QueryGeometry > geom = new QueryGeometry( getName() );
-        geom->setDataVariance( Object::DYNAMIC );
-        geom->addPrimitiveSet( new DrawElementsUShort( PrimitiveSet::QUADS, 24, indices ) );
-
-        _queryGeode->addDrawable( geom.get() );
+        _queryGeode->addDrawable( createDefaultQueryGeometry( getName() ) );
     }
 
     {
@@ -744,17 +739,7 @@ void OcclusionQueryNode::createSupportNodes()
         _debugGeode = new Geode;
         _debugGeode->setName( "Debug" );
         _debugGeode->setDataVariance( Object::DYNAMIC );
-
-        ref_ptr<Geometry> geom = new Geometry;
-        geom->setDataVariance( Object::DYNAMIC );
-
-        ref_ptr<Vec4Array> ca = new Vec4Array;
-        ca->push_back( Vec4( 1.f, 1.f, 1.f, 1.f ) );
-        geom->setColorArray( ca.get(), Array::BIND_OVERALL );
-
-        geom->addPrimitiveSet( new DrawElementsUShort( PrimitiveSet::QUADS, 24, indices ) );
-
-        _debugGeode->addDrawable( geom.get() );
+        _debugGeode->addDrawable( createDefaultDebugQueryGeometry() );
     }
 
     // Creste state sets. Note that the osgOQ visitors (which place OQNs throughout
@@ -762,6 +747,69 @@ void OcclusionQueryNode::createSupportNodes()
     //   between all OQNs for efficiency.
     setQueryStateSet( initOQState() );
     setDebugStateSet( initOQDebugState() );
+}
+
+
+void OcclusionQueryNode::setQueryGeometryInternal( QueryGeometry* queryGeom,
+                                                   Geometry* debugQueryGeom,
+                                                   QueryGeometryState state )
+{
+    if (!queryGeom || !debugQueryGeom)
+    {
+        OSG_FATAL << "osgOQ: OcclusionQueryNode: No QueryGeometry." << std::endl;
+        return;
+    }
+
+    _queryGeometryState = state;
+
+    _queryGeode->removeDrawables(0, _queryGeode->getNumDrawables());
+    _queryGeode->addDrawable(queryGeom);
+
+    _debugGeode->removeDrawables(0, _debugGeode->getNumDrawables());
+    _debugGeode->addDrawable(debugQueryGeom);
+}
+
+
+void OcclusionQueryNode::updateDefaultQueryGeometry()
+{
+    if (_queryGeometryState == USER_DEFINED)
+    {
+        OSG_FATAL << "osgOQ: OcclusionQueryNode: Unexpected QueryGeometryState=USER_DEFINED." << std::endl;
+        return;
+    }
+
+    ComputeBoundsVisitor cbv;
+    accept( cbv );
+
+    BoundingBox bb = cbv.getBoundingBox();
+    const bool bbValid = bb.valid();
+    _queryGeometryState = bbValid ? VALID : INVALID;
+
+    osg::ref_ptr<Vec3Array> v = new Vec3Array;
+    v->resize( 8 );
+
+    // Having (0,0,0) as vertices for the case of the invalid query geometry
+    // still isn't quite the right thing. But the query geometry is public
+    // accessible and therefore a user might expect eight vertices, so
+    // it seems safer to keep eight vertices in the geometry.
+
+    if (bbValid)
+    {
+        (*v)[0] = Vec3( bb._min.x(), bb._min.y(), bb._min.z() );
+        (*v)[1] = Vec3( bb._max.x(), bb._min.y(), bb._min.z() );
+        (*v)[2] = Vec3( bb._max.x(), bb._min.y(), bb._max.z() );
+        (*v)[3] = Vec3( bb._min.x(), bb._min.y(), bb._max.z() );
+        (*v)[4] = Vec3( bb._max.x(), bb._max.y(), bb._min.z() );
+        (*v)[5] = Vec3( bb._min.x(), bb._max.y(), bb._min.z() );
+        (*v)[6] = Vec3( bb._min.x(), bb._max.y(), bb._max.z() );
+        (*v)[7] = Vec3( bb._max.x(), bb._max.y(), bb._max.z() );
+    }
+
+    Geometry* geom = static_cast< Geometry* >( _queryGeode->getDrawable( 0 ) );
+    geom->setVertexArray( v.get() );
+
+    geom = static_cast< osg::Geometry* >( _debugGeode->getDrawable( 0 ) );
+    geom->setVertexArray( v.get() );
 }
 
 
@@ -785,14 +833,22 @@ void OcclusionQueryNode::discardDeletedQueryObjects( unsigned int contextID )
     QueryGeometry::discardDeletedQueryObjects( contextID );
 }
 
-osg::QueryGeometry* OcclusionQueryNode::getQueryGeometry()
+void OcclusionQueryNode::setQueryGeometry( QueryGeometry* geom )
 {
-    if (_queryGeode && _queryGeode->getDrawable( 0 ))
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock( _computeBoundMutex )  ;
+
+    if (geom)
     {
-        QueryGeometry* qg = static_cast< QueryGeometry* >( _queryGeode->getDrawable( 0 ) );
-        return qg;
+        setQueryGeometryInternal( geom, geom, USER_DEFINED );
     }
-    return 0;
+    else
+    {
+        setQueryGeometryInternal( createDefaultQueryGeometry( getName() ),
+                                  createDefaultDebugQueryGeometry(),
+                                  INVALID);
+
+        updateDefaultQueryGeometry();
+    }
 }
 
 const osg::QueryGeometry* OcclusionQueryNode::getQueryGeometry() const
